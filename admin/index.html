@@ -100,9 +100,10 @@ dialog h2{font-size:20px;margin-bottom:4px}
     </div>
     <div class="hint" id="payHint" style="margin-bottom:14px"></div>
 
-    <label style="margin-top:4px">או העלה קוד QR קבוע מ-Bit (תמונה) — יוצג ברכב כמו שהוא</label>
+    <label style="margin-top:10px">או העלה קוד QR קבוע מ-Bit (תמונה) — יוצג ברכב כמו שהוא <span style="color:var(--ok)">✦ חדש</span></label>
+    <input type="file" id="fQrFile" accept="image/*" style="display:none">
     <div class="row">
-      <input type="file" id="fQrFile" accept="image/*">
+      <label for="fQrFile" style="flex:1;text-align:center;background:var(--brand);color:#fff;font-weight:600;padding:12px 18px;border-radius:12px;cursor:pointer">📷 בחר תמונת QR מהאייפון</label>
       <button class="primary" id="btnQr">שמור QR</button>
     </div>
     <div class="hint" id="qrHint"></div>
