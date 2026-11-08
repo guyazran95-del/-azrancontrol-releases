@@ -1,6 +1,6 @@
 {
-  "version": "0.31.0",
-  "versionCode": 48,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.31.0.apk",
-  "notes": "חנות: חיפוש וכפתור 'עדכן הכל'"
+  "version": "0.32.0",
+  "versionCode": 49,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.32.0.apk",
+  "notes": "עזרה מרחוק חלקה יותר: צילום והעלאה במקביל (pipeline)"
 }
