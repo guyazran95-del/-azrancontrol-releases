@@ -1,6 +1,6 @@
 {
-  "version": "0.21.0",
-  "versionCode": 38,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.21.0.apk",
-  "notes": "עיצוב חדש: נקי, בהיר ומינימליסטי"
+  "version": "0.22.0",
+  "versionCode": 39,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.22.0.apk",
+  "notes": "תמיכה בהעלאת תמונת QR קבועה מ-Bit בעמוד הניהול"
 }

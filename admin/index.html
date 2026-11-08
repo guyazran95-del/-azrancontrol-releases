@@ -99,6 +99,18 @@ dialog h2{font-size:20px;margin-bottom:4px}
       <button class="primary" id="btnPay">שמור</button>
     </div>
     <div class="hint" id="payHint" style="margin-bottom:14px"></div>
+
+    <label style="margin-top:4px">או העלה קוד QR קבוע מ-Bit (תמונה) — יוצג ברכב כמו שהוא</label>
+    <div class="row">
+      <input type="file" id="fQrFile" accept="image/*">
+      <button class="primary" id="btnQr">שמור QR</button>
+    </div>
+    <div class="hint" id="qrHint"></div>
+    <div id="qrPrevWrap" style="display:none;margin:8px 0 18px">
+      <img id="qrPrev" alt="" style="max-width:180px;border-radius:12px;display:block">
+      <button id="btnQrDel" class="small" style="margin-top:8px">הסר QR</button>
+    </div>
+
     <div id="subsList"></div>
   </div>
 </section>
@@ -347,6 +359,7 @@ function startSubs() {
   // payment link
   getDoc(doc(db, "config", "app")).then(d => {
     if (d.exists() && d.data().paymentUrl) $("fPay").value = d.data().paymentUrl;
+    if (d.exists() && d.data().paymentQr) showQrPreview(d.data().paymentQr);
   }).catch(() => {});
   if (subsUnsub) return;
   subsUnsub = onSnapshot(collection(db, "licenses"), snap => {
@@ -404,6 +417,52 @@ $("btnPay").onclick = async () => {
     await setDoc(doc(db, "config", "app"), { paymentUrl: $("fPay").value.trim() }, { merge: true });
     $("payHint").textContent = "נשמר ✓"; $("payHint").className = "hint";
   } catch (e) { $("payHint").textContent = friendly(e); $("payHint").className = "hint err"; }
+};
+
+// --- QR image upload: downscale to keep it small, store base64 in config/app.paymentQr ---
+let pendingQr = "";
+function showQrPreview(b64) {
+  $("qrPrev").src = "data:image/png;base64," + b64;
+  $("qrPrevWrap").style.display = "block";
+}
+$("fQrFile").onchange = () => {
+  const f = $("fQrFile").files[0];
+  if (!f) return;
+  const qh = $("qrHint");
+  const img = new Image();
+  img.onload = () => {
+    const max = 512;
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    const dataUrl = c.toDataURL("image/png");
+    pendingQr = dataUrl.split(",")[1];
+    showQrPreview(pendingQr);
+    qh.className = "hint"; qh.textContent = "מוכן לשמירה — לחץ 'שמור QR'. (" + Math.round(pendingQr.length / 1024) + "KB)";
+  };
+  img.onerror = () => { qh.className = "hint err"; qh.textContent = "לא ניתן לקרוא את התמונה."; };
+  const r = new FileReader();
+  r.onload = () => { img.src = r.result; };
+  r.readAsDataURL(f);
+};
+$("btnQr").onclick = async () => {
+  const qh = $("qrHint");
+  if (!pendingQr) { qh.className = "hint err"; qh.textContent = "בחר קודם תמונת QR."; return; }
+  if (pendingQr.length > 900000) { qh.className = "hint err"; qh.textContent = "התמונה גדולה מדי."; return; }
+  try {
+    await setDoc(doc(db, "config", "app"), { paymentQr: pendingQr }, { merge: true });
+    qh.className = "hint"; qh.textContent = "קוד ה-QR נשמר ✓ יופיע ברכב כשהניסיון נגמר.";
+  } catch (e) { qh.className = "hint err"; qh.textContent = friendly(e); }
+};
+$("btnQrDel").onclick = async () => {
+  try {
+    await setDoc(doc(db, "config", "app"), { paymentQr: "" }, { merge: true });
+    pendingQr = ""; $("qrPrevWrap").style.display = "none"; $("fQrFile").value = "";
+    $("qrHint").className = "hint"; $("qrHint").textContent = "הוסר.";
+  } catch (e) { $("qrHint").className = "hint err"; $("qrHint").textContent = friendly(e); }
 };
 
 let serverOffset = 0;
