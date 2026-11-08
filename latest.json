@@ -1,6 +1,6 @@
 {
-  "version": "0.29.0",
-  "versionCode": 46,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.29.0.apk",
-  "notes": "מחוות 2 אצבעות ב-8 כיוונים (הוסרו 4 אצבעות שהתנגשו במאוורר) + גיבוי/העברת הגדרות"
+  "version": "0.30.0",
+  "versionCode": 47,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.30.0.apk",
+  "notes": "מסך בית חדש: סטטוס, פעולות מהירות, קיצורים ואפליקציות"
 }
