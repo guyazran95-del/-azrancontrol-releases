@@ -385,12 +385,12 @@ function renderSubs(docs) {
     meta.style.color = it.paid ? "var(--ok)" : it.active ? "var(--warn)" : "var(--bad)";
     info.append(name, meta);
     const btn = document.createElement("button"); btn.className = "primary small";
-    btn.textContent = it.paid ? "הארך שנתיים" : "הפעל מנוי (שנתיים)";
+    btn.textContent = it.paid ? "הארך שנה" : "הפעל מנוי (שנה)";
     btn.onclick = async () => {
       btn.disabled = true;
       try {
         const base = Math.max(now, it.paidUntil || 0);
-        const until = new Date(base + 2 * 365 * 86400000);
+        const until = new Date(base + 365 * 86400000);
         await setDoc(doc(db, "licenses", it.id), { paidUntil: Timestamp.fromDate(until) }, { merge: true });
         toast("המנוי הופעל ✓");
       } catch (e) { toast(friendly(e), 6000); }
