@@ -1,6 +1,6 @@
 {
-  "version": "0.26.0",
-  "versionCode": 43,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.26.0.apk",
-  "notes": "הקלטת העדפות לפי שם הכפתור דרך שירות נגישות (כמו Commander) — אמין ולא דורש מיקומים"
+  "version": "0.27.0",
+  "versionCode": 44,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.27.0.apk",
+  "notes": "מודול רכב מודולרי (חלונות/גג) עם שקע לאינטגרציה מורשית; מסומן בבירור 'מצב הדגמה'"
 }
