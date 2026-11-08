@@ -1,6 +1,6 @@
 {
-  "version": "0.12.1",
-  "versionCode": 25,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.12.1.apk",
-  "notes": "תיקון פעולות מערכת במחוות מסך"
+  "version": "0.13.0",
+  "versionCode": 26,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.13.0.apk",
+  "notes": "הפעלה אוטומטית בהדלקה + מחוות מסך יציבות"
 }
