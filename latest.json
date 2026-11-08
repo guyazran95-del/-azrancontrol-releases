@@ -1,6 +1,6 @@
 {
-  "version": "0.24.0",
-  "versionCode": 41,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.24.0.apk",
-  "notes": "קוד מכשיר בולט; תיקון מקליט ההעדפות לפרוטוקול ריבוי-מגע + רישום ליומן"
+  "version": "0.25.0",
+  "versionCode": 42,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.25.0.apk",
+  "notes": "אבחון הקלטה: רישום אירועי מגע גולמיים ליומן"
 }
