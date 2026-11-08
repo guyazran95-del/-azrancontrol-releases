@@ -1,6 +1,6 @@
 {
-  "version": "0.19.0",
-  "versionCode": 36,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.19.0.apk",
-  "notes": "נסיעות ומסלולים (GPS) ופרופילי נהג עם החלת העדפות אוטומטית"
+  "version": "0.20.0",
+  "versionCode": 37,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.20.0.apk",
+  "notes": "פרופילים: רשימת העדפות עם שמות (צ'ק-ליסט) ותיקון שמירת הקלטה"
 }
