@@ -83,7 +83,7 @@ dialog h2{font-size:20px;margin-bottom:4px}
 </section>
 
 <section id="panel" hidden>
-  <div class="tabs"><button id="tabStore" class="on">חנות</button><button id="tabRemote">שליטה מרחוק</button></div>
+  <div class="tabs"><button id="tabStore" class="on">חנות</button><button id="tabRemote">שליטה מרחוק</button><button id="tabSubs">מנויים</button></div>
   <div id="storePane">
     <button class="primary big" id="btnAdd">+ הוסף אפליקציה</button>
     <div id="list"></div>
@@ -91,6 +91,15 @@ dialog h2{font-size:20px;margin-bottom:4px}
   <div id="remotePane" hidden>
     <p class="hint" style="margin:4px 0 8px">הלקוח לוחץ ברכב: AzranControl ← "עזרה מרחוק" ← "בקש עזרה", ומקבל קוד. הרכב יופיע כאן.</p>
     <div id="sessList"></div>
+  </div>
+  <div id="subsPane" hidden>
+    <label for="fPay">קישור לתשלום (Bit / PayBox / כל קישור) — יוצג כ-QR ברכב כשהניסיון נגמר</label>
+    <div class="row">
+      <input id="fPay" dir="ltr" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://...">
+      <button class="primary" id="btnPay">שמור</button>
+    </div>
+    <div class="hint" id="payHint" style="margin-bottom:14px"></div>
+    <div id="subsList"></div>
   </div>
 </section>
 
@@ -139,7 +148,7 @@ dialog h2{font-size:20px;margin-bottom:4px}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, onSnapshot, addDoc, setDoc, doc, deleteDoc, serverTimestamp }
+import { getFirestore, collection, onSnapshot, addDoc, setDoc, updateDoc, getDoc, doc, deleteDoc, serverTimestamp, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDatabase, ref, onValue, off, set, push, serverTimestamp as rtNow }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -324,11 +333,78 @@ getRedirectResult(auth).catch(e => { $("loginErr").textContent = friendly(e); })
 // ---------------- Remote support ----------------
 $("tabStore").onclick = () => setTab("store");
 $("tabRemote").onclick = () => setTab("remote");
+$("tabSubs").onclick = () => setTab("subs");
 function setTab(t) {
   $("tabStore").classList.toggle("on", t === "store");
   $("tabRemote").classList.toggle("on", t === "remote");
-  show("storePane", t === "store"); show("remotePane", t === "remote");
+  $("tabSubs").classList.toggle("on", t === "subs");
+  show("storePane", t === "store"); show("remotePane", t === "remote"); show("subsPane", t === "subs");
 }
+
+// ---------------- Subscriptions ----------------
+let subsUnsub = null;
+function startSubs() {
+  // payment link
+  getDoc(doc(db, "config", "app")).then(d => {
+    if (d.exists() && d.data().paymentUrl) $("fPay").value = d.data().paymentUrl;
+  }).catch(() => {});
+  if (subsUnsub) return;
+  subsUnsub = onSnapshot(collection(db, "licenses"), snap => {
+    const now = Date.now();
+    const rows = snap.docs.map(d => {
+      const v = d.data();
+      const created = d.get ? (d._document ? null : null) : null;
+      return { id: d.id, ...v, createdAt: v.createdAt };
+    });
+    renderSubs(snap.docs);
+  }, e => { $("subsList").textContent = friendly(e); });
+}
+function fmtDate(ms) { return new Date(ms).toLocaleDateString("he-IL"); }
+function renderSubs(docs) {
+  const box = $("subsList"); box.replaceChildren();
+  const now = Date.now();
+  if (!docs.length) { const d = document.createElement("div"); d.className = "empty"; d.textContent = "עדיין אין מכשירים רשומים."; box.append(d); return; }
+  // sort: expired first, then trial, then paid
+  const items = docs.map(dc => {
+    const v = dc.data();
+    const created = v.createdAt?.toMillis ? v.createdAt.toMillis()
+                   : (v.lastSeen?.toMillis ? v.lastSeen.toMillis() : now);
+    const paidUntil = v.paidUntil?.toMillis ? v.paidUntil.toMillis() : 0;
+    const trialEnd = created + 7 * 86400000;
+    const paid = paidUntil > now;
+    const active = paid || now < trialEnd;
+    return { id: dc.id, model: v.model || "רכב", ver: v.version || "", paid, active, paidUntil, trialEnd };
+  }).sort((a, b) => (a.active - b.active) || (a.paid - b.paid));
+  for (const it of items) {
+    const card = document.createElement("div"); card.className = "card app";
+    const info = document.createElement("div"); info.className = "info";
+    const name = document.createElement("div"); name.className = "name"; name.textContent = it.model + " · " + it.id.slice(0, 8);
+    const meta = document.createElement("div"); meta.className = "meta";
+    meta.textContent = it.paid ? ("מנוי עד " + fmtDate(it.paidUntil))
+      : it.active ? ("ניסיון עד " + fmtDate(it.trialEnd)) : "פג תוקף";
+    meta.style.color = it.paid ? "var(--ok)" : it.active ? "var(--warn)" : "var(--bad)";
+    info.append(name, meta);
+    const btn = document.createElement("button"); btn.className = "primary small";
+    btn.textContent = it.paid ? "הארך שנתיים" : "הפעל מנוי (שנתיים)";
+    btn.onclick = async () => {
+      btn.disabled = true;
+      try {
+        const base = Math.max(now, it.paidUntil || 0);
+        const until = new Date(base + 2 * 365 * 86400000);
+        await setDoc(doc(db, "licenses", it.id), { paidUntil: Timestamp.fromDate(until) }, { merge: true });
+        toast("המנוי הופעל ✓");
+      } catch (e) { toast(friendly(e), 6000); }
+      btn.disabled = false;
+    };
+    card.append(info, btn); box.append(card);
+  }
+}
+$("btnPay").onclick = async () => {
+  try {
+    await setDoc(doc(db, "config", "app"), { paymentUrl: $("fPay").value.trim() }, { merge: true });
+    $("payHint").textContent = "נשמר ✓"; $("payHint").className = "hint";
+  } catch (e) { $("payHint").textContent = friendly(e); $("payHint").className = "hint err"; }
+};
 
 let serverOffset = 0;
 onValue(ref(rtdb, ".info/serverTimeOffset"), s => { serverOffset = s.val() || 0; });
@@ -442,6 +518,7 @@ onAuthStateChanged(auth, user => {
     if (!unsub) unsub = onSnapshot(collection(db, "apps"),
       snap => { apps = snap.docs.map(d => ({ id: d.id, ...norm(d.data()) })); render(); },
       e => toast(friendly(e), 6000));
+    startSubs();
     if (!sessUnsub) {
       const r = ref(rtdb, "sessions");
       onValue(r, snap => { sessions = snap.val() || {}; renderSessions(); }, e => {
@@ -452,6 +529,7 @@ onAuthStateChanged(auth, user => {
   } else {
     if (unsub) { unsub(); unsub = null; }
     if (sessUnsub) { sessUnsub(); sessUnsub = null; }
+    if (subsUnsub) { subsUnsub(); subsUnsub = null; }
   }
 });
 </script>

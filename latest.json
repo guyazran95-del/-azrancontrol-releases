@@ -1,6 +1,6 @@
 {
-  "version": "0.16.1",
-  "versionCode": 31,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.16.1.apk",
-  "notes": "ניקוי: הסרת רכיב בלוטות"
+  "version": "0.17.0",
+  "versionCode": 32,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.17.0.apk",
+  "notes": "עיצוב חדש + מנויים (ניסיון שבוע ותשלום QR)"
 }
