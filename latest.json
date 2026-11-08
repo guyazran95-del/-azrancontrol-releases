@@ -1,6 +1,6 @@
 {
-  "version": "0.16.0",
-  "versionCode": 30,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.16.0.apk",
-  "notes": "הופעה אוטומטית לפי טלפון Bluetooth"
+  "version": "0.16.1",
+  "versionCode": 31,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.16.1.apk",
+  "notes": "ניקוי: הסרת רכיב בלוטות"
 }
