@@ -1,6 +1,6 @@
 {
-  "version": "0.27.0",
-  "versionCode": 44,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.27.0.apk",
-  "notes": "מודול רכב מודולרי (חלונות/גג) עם שקע לאינטגרציה מורשית; מסומן בבירור 'מצב הדגמה'"
+  "version": "0.28.0",
+  "versionCode": 45,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.28.0.apk",
+  "notes": "הוסרה לשונית מצלמות לבינתיים"
 }
