@@ -392,7 +392,7 @@ function renderSubs(docs) {
   for (const it of items) {
     const card = document.createElement("div"); card.className = "card app";
     const info = document.createElement("div"); info.className = "info";
-    const name = document.createElement("div"); name.className = "name"; name.textContent = it.model + " · " + it.id.slice(0, 8);
+    const name = document.createElement("div"); name.className = "name"; name.textContent = it.model + " · קוד " + it.id.slice(0, 8).toUpperCase();
     const meta = document.createElement("div"); meta.className = "meta";
     meta.textContent = it.paid ? ("מנוי עד " + fmtDate(it.paidUntil))
       : it.active ? ("ניסיון עד " + fmtDate(it.trialEnd)) : "פג תוקף";
