@@ -1,6 +1,6 @@
 {
-  "version": "0.7.4",
-  "versionCode": 16,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.7.4.apk",
-  "notes": "תיקון שליטה ברכב"
+  "version": "0.7.5",
+  "versionCode": 17,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.7.5.apk",
+  "notes": "שליטה ברכב דרך הרשאות"
 }
