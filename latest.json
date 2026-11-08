@@ -1,6 +1,6 @@
 {
-  "version": "0.9.0",
-  "versionCode": 19,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.9.0.apk",
-  "notes": "גרסה נקייה: מחוות לאפליקציות ופעולות מערכת"
+  "version": "0.9.1",
+  "versionCode": 20,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.9.1.apk",
+  "notes": "תיקון זיהוי כיוון המחוות"
 }
