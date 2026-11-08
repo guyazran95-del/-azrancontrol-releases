@@ -24,6 +24,10 @@ button:disabled{opacity:.5}
 .card{background:var(--card);border-radius:16px;padding:16px;margin:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .app{display:flex;align-items:center;gap:14px}
 .av{width:48px;height:48px;border-radius:12px;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700;font-size:22px;flex:none}
+.av img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.av.has-img{background:var(--line)}
+.preview{display:flex;align-items:center;gap:12px;margin-top:8px}
+.preview .av{width:56px;height:56px}
 .app .info{flex:1;min-width:0}
 .app .name{font-weight:600;font-size:18px}
 .app .meta{font-size:14px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -83,6 +87,9 @@ dialog h2{font-size:20px;margin-bottom:4px}
       <button type="button" class="small" id="btnBump">+1</button>
     </div>
     <div class="hint">כשמשנים את הגרסה, ללקוחות שהתקינו את האפליקציה יופיע "עדכן".</div>
+    <label for="fIcon">תמונה, קישור מהדרייב (לא חובה)</label>
+    <input id="fIcon" dir="ltr" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://drive.google.com/file/d/…">
+    <div class="preview"><div class="av" id="iconPrev">?</div><div class="hint" id="iconHint">העלה תמונה (PNG/JPG) לדרייב, שתף ב"כל מי שיש לו את הקישור" והדבק כאן.</div></div>
     <label for="fDesc">תיאור (לא חובה)</label>
     <textarea id="fDesc"></textarea>
     <label class="check"><input type="checkbox" id="fHidden"> להסתיר מהחנות (בלי למחוק)</label>
@@ -140,6 +147,30 @@ function norm(data) {
   return o;
 }
 
+// Drive share links are not image URLs; the thumbnail endpoint serves public files as images.
+function imageUrl(raw) {
+  const u = (raw || "").trim();
+  if (!u) return "";
+  if (/drive\.google\.com|drive\.usercontent\.google\.com/.test(u)) {
+    const m = u.match(/\/file\/d\/([\w-]+)/) || u.match(/[?&]id=([\w-]+)/);
+    if (m) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w256";
+  }
+  return u;
+}
+
+function fillAvatar(el, name, icon) {
+  el.replaceChildren(); el.classList.remove("has-img");
+  el.textContent = (name || "?").slice(0, 1).toUpperCase();
+  const src = imageUrl(icon);
+  if (!src) return null;
+  const img = new Image();
+  img.referrerPolicy = "no-referrer";
+  img.alt = "";
+  img.onload = () => { el.textContent = ""; el.classList.add("has-img"); el.append(img); };
+  img.src = src;
+  return img;
+}
+
 function render() {
   const list = $("list");
   list.replaceChildren();
@@ -152,7 +183,7 @@ function render() {
   }
   for (const a of rows) {
     const card = document.createElement("div"); card.className = "card app";
-    const av = document.createElement("div"); av.className = "av"; av.textContent = (a.name || "?").slice(0, 1).toUpperCase();
+    const av = document.createElement("div"); av.className = "av"; fillAvatar(av, a.name, a.icon);
     const info = document.createElement("div"); info.className = "info";
     const name = document.createElement("div"); name.className = "name"; name.textContent = a.name || "(ללא שם)";
     if (a.hidden === true || a.hidden === "true") {
@@ -175,6 +206,8 @@ function openForm(a) {
   $("fUrl").value = a?.url || "";
   $("fVersion").value = a?.version || (a ? "" : "1");
   $("fDesc").value = a?.description || "";
+  $("fIcon").value = a?.icon || "";
+  previewIcon();
   $("fHidden").checked = a?.hidden === true || a?.hidden === "true";
   show("btnDel", !!a);
   checkUrl();
@@ -193,6 +226,19 @@ function checkUrl() {
 }
 $("fUrl").addEventListener("input", checkUrl);
 
+function previewIcon() {
+  const v = $("fIcon").value, h = $("iconHint");
+  const img = fillAvatar($("iconPrev"), $("fName").value, v);
+  if (!v.trim()) { h.className = "hint"; h.textContent = "העלה תמונה (PNG/JPG) לדרייב, שתף ב\"כל מי שיש לו את הקישור\" והדבק כאן."; return; }
+  h.className = "hint"; h.textContent = "טוען תמונה…";
+  if (img) {
+    img.addEventListener("load", () => { h.className = "hint"; h.textContent = "התמונה נטענה ✓"; });
+    img.addEventListener("error", () => { h.className = "hint err"; h.textContent = "התמונה לא נטענת. ודא שהשיתוף בדרייב פתוח לכל מי שיש לו את הקישור."; });
+  }
+}
+$("fIcon").addEventListener("input", previewIcon);
+$("fName").addEventListener("input", () => { if (!$("fIcon").value.trim()) previewIcon(); });
+
 $("btnBump").onclick = () => {
   const v = $("fVersion").value.trim() || "0";
   const m = v.match(/^(.*?)(\d+)(\D*)$/);
@@ -209,6 +255,7 @@ $("frm").addEventListener("submit", async ev => {
     url: $("fUrl").value.trim(),
     version: $("fVersion").value.trim(),
     description: $("fDesc").value.trim(),
+    icon: $("fIcon").value.trim(),
     hidden: $("fHidden").checked,
     updatedAt: serverTimestamp(),
   };
