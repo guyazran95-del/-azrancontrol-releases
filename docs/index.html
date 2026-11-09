@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>AZ Drive</title>
+<meta name="theme-color" content="#0B0F14">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- iOS: add to home screen as a full-screen app -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AZ Drive">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --bg:#0B0F14; --card:#161d26; --card2:#1d2735; --line:#263141; --ink:#eef3f8;
+    --sub:#93a1b2; --accent:#39b6ff; --accent2:#2d6cf6; --ok:#2fd27a; --warn:#ffb020; --bad:#ff5a5f;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overscroll-behavior:none;}
+  body{display:flex;flex-direction:column;}
+  .hdr{padding:calc(env(safe-area-inset-top) + 14px) 18px 12px;display:flex;align-items:center;gap:12px;
+    border-bottom:1px solid var(--line);background:#0d131a;position:sticky;top:0;z-index:50;}
+  .hdr img{width:34px;height:34px;border-radius:9px;}
+  .hdr .t{font-weight:700;font-size:20px;flex:1;}
+  .hdr .code{font-size:12px;color:var(--sub);background:var(--card);padding:4px 10px;border-radius:20px;border:1px solid var(--line);}
+  main{flex:1;overflow:auto;position:relative;}
+  .tabbar{display:flex;border-top:1px solid var(--line);background:#0d131a;
+    padding-bottom:env(safe-area-inset-bottom);}
+  .tabbar button{flex:1;background:none;border:0;color:var(--sub);padding:10px 4px 12px;font-size:12px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;}
+  .tabbar button .ic{font-size:22px;}
+  .tabbar button.on{color:var(--accent);}
+  .view{display:none;height:100%;}
+  .view.on{display:block;}
+  .pad{padding:18px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;}
+  h2{font-size:17px;margin:0 0 6px;}
+  p.sub{color:var(--sub);font-size:14px;margin:0 0 4px;line-height:1.5;}
+  .btn{display:block;width:100%;background:var(--accent2);color:#fff;border:0;border-radius:12px;
+    padding:15px;font-size:16px;font-weight:600;font-family:inherit;margin-top:10px;}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  input{width:100%;background:#0d131a;border:1px solid var(--line);border-radius:12px;color:var(--ink);
+    padding:14px;font-size:20px;text-align:center;letter-spacing:4px;text-transform:uppercase;font-family:inherit;}
+  /* pairing overlay */
+  #pair{position:absolute;inset:0;background:var(--bg);z-index:100;display:none;
+    flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;}
+  #pair.on{display:flex;}
+  #pair img{width:84px;height:84px;border-radius:20px;margin-bottom:18px;}
+  /* map */
+  #map{position:absolute;inset:0;}
+  .hud{position:absolute;z-index:500;top:12px;inset-inline:12px;display:flex;gap:8px;pointer-events:none;}
+  .pill{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;box-shadow:0 4px 16px #0007;}
+  .pill b{font-size:20px;} .pill span{display:block;color:var(--sub);font-size:11px;}
+  .empty{color:var(--sub);text-align:center;padding:40px 20px;font-size:15px;line-height:1.6;}
+  .live-dot{width:9px;height:9px;border-radius:50%;background:var(--bad);display:inline-block;margin-inline-end:6px;
+    animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .cam{width:100%;border-radius:14px;background:#000;aspect-ratio:16/9;object-fit:contain;display:block;}
+  .seg{display:flex;gap:8px;margin-bottom:12px;}
+  .seg button{flex:1;background:var(--card);border:1px solid var(--line);color:var(--sub);border-radius:10px;
+    padding:9px;font-size:14px;font-family:inherit;}
+  .seg button.on{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+  .badge{display:inline-block;background:#11351f;color:var(--ok);border:1px solid #1d5e38;border-radius:20px;
+    padding:3px 10px;font-size:12px;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <img src="icon-192.png" alt="">
+  <div class="t">AZ Drive</div>
+  <div class="code" id="hdrCode"></div>
+</div>
+
+<main>
+  <!-- CAMERAS + AI -->
+  <section class="view on" id="v-cam">
+    <div class="pad">
+      <div class="card">
+        <h2>📷 מצלמות הרכב <span class="badge">AI</span></h2>
+        <p class="sub">צפייה חיה במצלמות הרכב עם זיהוי חכם (הולך רגל / אופניים / רכב). פעיל כשיש אינטרנט ברכב.</p>
+      </div>
+      <div id="camWrap"></div>
+      <div class="empty" id="camEmpty">
+        <span class="live-dot"></span>ממתין לשידור מהרכב…<br>
+        ודא שהרכב מחובר לאינטרנט ושהשידור הופעל באפליקציית הרכב.
+      </div>
+    </div>
+  </section>
+
+  <!-- RECORDINGS -->
+  <section class="view" id="v-rec">
+    <div class="pad">
+      <div class="seg">
+        <button class="on" data-rec="drive">🚗 נסיעה</button>
+        <button data-rec="park">🅿️ חנייה</button>
+      </div>
+      <div id="recList"></div>
+      <div class="empty" id="recEmpty">אין הקלטות זמינות עדיין.<br>הקלטות נסיעה וחנייה יופיעו כאן כשהרכב מחובר.</div>
+    </div>
+  </section>
+
+  <!-- LIVE ROUTE -->
+  <section class="view" id="v-route">
+    <div id="map"></div>
+    <div class="hud" id="routeHud" hidden>
+      <div class="pill"><b id="kmh">–</b><span>קמ"ש</span></div>
+      <div class="pill"><b id="pts">0</b><span>נקודות</span></div>
+      <div class="pill"><b id="rstatus">מתחבר…</b><span>מצב</span></div>
+    </div>
+    <div class="empty" id="routeEmpty" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <span class="live-dot"></span>ממתין למסלול…<br>הפעל "מעקב מסלול" באפליקציית הרכב.
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button class="on" data-tab="cam"><span class="ic">📷</span>מצלמות</button>
+  <button data-tab="rec"><span class="ic">⏺️</span>הקלטות</button>
+  <button data-tab="route"><span class="ic">🗺️</span>מסלול</button>
+</nav>
+
+<!-- PAIRING -->
+<div id="pair">
+  <img src="icon-512.png" alt="">
+  <h2 style="font-size:24px;margin:0 0 6px;">ברוך הבא ל-AZ Drive</h2>
+  <p class="sub" style="max-width:300px;">הזן את <b>קוד הרכב</b> שמופיע באפליקציית הרכב (לשונית רכב → מסלול נסיעה חי). זה מחבר את הטלפון שלך לרכב שלך בלבד.</p>
+  <input id="codeInput" maxlength="6" placeholder="קוד רכב" autocapitalize="characters" autocomplete="off">
+  <button class="btn" id="pairBtn" style="max-width:320px;">חבר</button>
+  <p class="sub" style="font-size:12px;margin-top:14px;">אפשר להוסיף את האפליקציה הזו למסך הבית: שתף → "הוסף למסך הבית".</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const DB = "https://azrancontrole-default-rtdb.europe-west1.firebasedatabase.app";
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+// allow ?code=XXXX to pre-pair (e.g. from a QR)
+const qp = new URLSearchParams(location.search).get("code");
+if (qp) localStorage.setItem("carCode", qp.toUpperCase());
+let CODE = localStorage.getItem("carCode") || "";
+
+function showPair(on){ $("#pair").classList.toggle("on", on); }
+function setCode(c){
+  CODE = c.toUpperCase().trim();
+  localStorage.setItem("carCode", CODE);
+  $("#hdrCode").textContent = CODE ? "רכב " + CODE : "";
+}
+
+$("#pairBtn").onclick = () => {
+  const c = $("#codeInput").value.trim();
+  if (c.length < 4) { $("#codeInput").focus(); return; }
+  setCode(c); showPair(false); startAll();
+};
+
+// tabs
+$$(".tabbar button").forEach(b => b.onclick = () => {
+  $$(".tabbar button").forEach(x => x.classList.remove("on"));
+  $$(".view").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  $("#v-" + b.dataset.tab).classList.add("on");
+  if (b.dataset.tab === "route") initMap();
+});
+
+// recordings segment
+$$("[data-rec]").forEach(b => b.onclick = () => {
+  $$("[data-rec]").forEach(x => x.classList.remove("on")); b.classList.add("on");
+  loadRecordings(b.dataset.rec);
+});
+
+/* ---------- LIVE ROUTE ---------- */
+let map, line, marker, pts = [], firstFix = true, mapInit = false;
+function initMap(){
+  if (mapInit) return; mapInit = true;
+  map = L.map("map", { zoomControl:true, attributionControl:false }).setView([32.08,34.78], 12);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{maxZoom:20}).addTo(map);
+  line = L.polyline([], { color:"#39b6ff", weight:5 }).addTo(map);
+  loadRoute();
+}
+function addPoint(lat,lng){
+  pts.push([lat,lng]); line.setLatLngs(pts); $("#pts").textContent = pts.length;
+  $("#routeEmpty").style.display = "none"; $("#routeHud").hidden = false;
+  if(!marker) marker = L.circleMarker([lat,lng],{radius:8,color:"#fff",weight:2,fillColor:"#39b6ff",fillOpacity:1}).addTo(map);
+  else marker.setLatLng([lat,lng]);
+  if(firstFix){ map.setView([lat,lng],16); firstFix=false; } else map.panTo([lat,lng],{animate:true});
+}
+async function loadRoute(){
+  if(!CODE) return;
+  try{ const j = await (await fetch(`${DB}/track/${CODE}/pts.json`)).json();
+    if(j) Object.keys(j).sort().forEach(k=>{ if(j[k]) addPoint(j[k].lat,j[k].lng); }); }catch(e){}
+  const es = new EventSource(`${DB}/track/${CODE}/live.json`);
+  const on = ev => { try{ const d=JSON.parse(ev.data).data;
+    if(d&&typeof d.lat==="number"){ $("#rstatus").textContent="חי";
+      if(typeof d.spd==="number"&&d.spd>=0)$("#kmh").textContent=d.spd; addPoint(d.lat,d.lng);} }catch(e){} };
+  es.addEventListener("put",on); es.addEventListener("patch",on);
+  es.onerror = () => $("#rstatus").textContent="…";
+}
+
+/* ---------- LIVE CAMERA (wires up when the car publishes /track/{code}/cam) ---------- */
+function startCamera(){
+  if(!CODE) return;
+  const es = new EventSource(`${DB}/track/${CODE}/cam/frame.json`);
+  const on = ev => { try{ const d=JSON.parse(ev.data).data;
+    if(d&&d.d){
+      $("#camEmpty").style.display="none";
+      let img = $("#camImg");
+      if(!img){ img=document.createElement("img"); img.id="camImg"; img.className="cam"; $("#camWrap").appendChild(img); }
+      img.src = "data:image/jpeg;base64," + d.d;
+    }}catch(e){} };
+  es.addEventListener("put",on); es.addEventListener("patch",on);
+  // tell the car someone is watching, so it streams
+  setInterval(()=>{ if(CODE) fetch(`${DB}/track/${CODE}/cam/watch.json`,{method:"PUT",body:JSON.stringify(Date.now())}); }, 3000);
+}
+
+/* ---------- RECORDINGS (wires up when the car publishes /track/{code}/rec) ---------- */
+async function loadRecordings(kind){
+  if(!CODE) return;
+  $("#recList").innerHTML="";
+  try{
+    const j = await (await fetch(`${DB}/track/${CODE}/rec/${kind}.json`)).json();
+    const keys = j ? Object.keys(j).sort().reverse() : [];
+    if(!keys.length){ $("#recEmpty").style.display="block"; return; }
+    $("#recEmpty").style.display="none";
+    keys.forEach(k=>{
+      const r=j[k]; const el=document.createElement("div"); el.className="card";
+      el.innerHTML=`<h2>${kind==='drive'?'🚗':'🅿️'} ${r.name||k}</h2><p class="sub">${r.time||''} · ${r.size||''}</p>`;
+      if(r.url){ const a=document.createElement("a"); a.href=r.url; a.className="btn ghost"; a.textContent="נגן"; a.target="_blank"; el.appendChild(a); }
+      $("#recList").appendChild(el);
+    });
+  }catch(e){ $("#recEmpty").style.display="block"; }
+}
+
+function startAll(){
+  setCode(CODE);
+  startCamera();
+  loadRecordings("drive");
+  // route starts when its tab is opened (map needs a visible container)
+}
+
+// boot
+if(!CODE){ showPair(true); }
+else { setCode(CODE); startAll(); }
+
+// service worker (installability + offline shell)
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
