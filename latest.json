@@ -1,6 +1,6 @@
 {
-  "version": "0.36.0",
-  "versionCode": 53,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.36.0.apk",
-  "notes": "פרופילים: זיהוי הגדרת רכב והחלה ברקע (בלי תנועת מסך) כשההגדרה שמורה באנדרואיד"
+  "version": "0.37.0",
+  "versionCode": 54,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.37.0.apk",
+  "notes": "פתיחה ישירה בלשונית חנות; נוסף כפתור 'התקן הכל' לצד 'עדכן הכל'"
 }
