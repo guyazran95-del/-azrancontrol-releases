@@ -1,6 +1,6 @@
 {
-  "version": "0.34.0",
-  "versionCode": 51,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.34.0.apk",
-  "notes": "מחוות: נפילה לכיוון ישר כשאלכסון לא ממופה; מסך תשלום נגלל (הקוד נראה); אבחון הקלטת פרופילים"
+  "version": "0.35.0",
+  "versionCode": 52,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.35.0.apk",
+  "notes": "הקלטת פרופיל תופסת גם כפתורים ללא טקסט (לפי מיקום); מחווה לבחירת פרופיל נהג"
 }
