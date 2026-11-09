@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>AZ Drive · מסלול חי</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root { --bg:#0f1419; --card:#18202b; --ink:#f2f5f9; --sub:#9aa7b5; --accent:#39b6ff; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  #map { position:absolute; inset:0; }
+  #hud { position:absolute; z-index:1000; top:12px; left:12px; right:12px;
+    display:flex; gap:10px; align-items:center; pointer-events:none; }
+  .pill { background:var(--card); border:1px solid #28323f; border-radius:14px;
+    padding:10px 14px; box-shadow:0 4px 18px rgba(0,0,0,.35); }
+  .pill b { font-size:22px; } .pill span { color:var(--sub); font-size:12px; display:block; }
+  #status { margin-inline-start:auto; pointer-events:auto; }
+  #big { position:absolute; z-index:1000; inset:0; display:flex; align-items:center;
+    justify-content:center; text-align:center; padding:24px; }
+  #big .box { background:var(--card); border:1px solid #28323f; border-radius:18px; padding:28px; max-width:360px; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="hud" hidden>
+  <div class="pill"><b id="kmh">–</b><span>קמ"ש</span></div>
+  <div class="pill"><b id="pts">0</b><span>נקודות</span></div>
+  <div class="pill" id="status"><b id="st">מתחבר…</b><span id="code"></span></div>
+</div>
+<div id="big"><div class="box">
+  <h2>מסלול חי · AZ Drive</h2>
+  <p id="msg" style="color:var(--sub)">טוען…</p>
+</div></div>
+
+<script>
+const DB = "https://azrancontrole-default-rtdb.europe-west1.firebasedatabase.app";
+const code = new URLSearchParams(location.search).get("code") || "";
+const $ = id => document.getElementById(id);
+
+if (!code) { $("msg").textContent = "חסר קוד. פתח את הקישור מהאפליקציה (לשונית רכב → מסלול חי)."; }
+else start();
+
+async function start() {
+  $("code").textContent = "קוד " + code;
+  const map = L.map("map", { zoomControl:true, attributionControl:false }).setView([32.08,34.78], 13);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom:20 }).addTo(map);
+  const line = L.polyline([], { color:"#39b6ff", weight:5, opacity:.9 }).addTo(map);
+  let marker = null, pts = [], firstFix = true;
+
+  function addPoint(lat, lng) {
+    pts.push([lat, lng]); line.setLatLngs(pts); $("pts").textContent = pts.length;
+    if (!marker) marker = L.circleMarker([lat,lng], { radius:8, color:"#fff", weight:2, fillColor:"#39b6ff", fillOpacity:1 }).addTo(map);
+    else marker.setLatLng([lat,lng]);
+    if (firstFix) { map.setView([lat,lng], 16); firstFix = false; }
+    else map.panTo([lat,lng], { animate:true });
+  }
+
+  // 1) Load the existing route so far.
+  try {
+    const r = await fetch(`${DB}/track/${code}/pts.json`);
+    const j = await r.json();
+    if (j) Object.keys(j).sort().forEach(k => { if (j[k]) addPoint(j[k].lat, j[k].lng); });
+  } catch (e) {}
+
+  // 2) Follow the live position in real time (Firebase server-sent events).
+  function listen() {
+    const es = new EventSource(`${DB}/track/${code}/live.json`);
+    const onData = ev => {
+      try {
+        const d = JSON.parse(ev.data).data;
+        if (d && typeof d.lat === "number") {
+          $("big").hidden = true; $("hud").hidden = false; $("st").textContent = "חי";
+          if (typeof d.spd === "number" && d.spd >= 0) $("kmh").textContent = d.spd;
+          addPoint(d.lat, d.lng);
+        }
+      } catch (e) {}
+    };
+    es.addEventListener("put", onData);
+    es.addEventListener("patch", onData);
+    es.onerror = () => { $("st").textContent = "מתחבר מחדש…"; };
+  }
+  listen();
+
+  // If nothing arrives, keep the intro with a hint.
+  setTimeout(() => { if (pts.length === 0) $("msg").textContent =
+    "ממתין לנתונים… ודא שהמעקב פעיל ברכב (לשונית רכב → התחל מעקב מסלול)."; }, 4000);
+}
+</script>
+</body>
+</html>
