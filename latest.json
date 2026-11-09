@@ -1,6 +1,6 @@
 {
-  "version": "0.41.0",
-  "versionCode": 58,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.41.0.apk",
-  "notes": "תיקון: עקיפת enforce* permission כדי ש-getInstance של BYD יצליח מתוך העוזר (shell-uid)"
+  "version": "0.42.0",
+  "versionCode": 59,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.42.0.apk",
+  "notes": "בנייה אוטומטית (GitHub Actions)"
 }
