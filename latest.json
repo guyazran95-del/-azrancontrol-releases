@@ -1,6 +1,6 @@
 {
-  "version": "0.37.0",
-  "versionCode": 54,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.37.0.apk",
-  "notes": "פתיחה ישירה בלשונית חנות; נוסף כפתור 'התקן הכל' לצד 'עדכן הכל'"
+  "version": "0.38.0",
+  "versionCode": 55,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.38.0.apk",
+  "notes": "שליטת חלונות/גג BYD אמיתית, הגדרות ADAS לפי פרופיל נהג, דאשבורד רכב (:8080), צפייה בהקלטות DVR, ושידור מצלמות מרחוק"
 }
