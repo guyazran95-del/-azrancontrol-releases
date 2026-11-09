@@ -1,6 +1,6 @@
 {
-  "version": "0.35.0",
-  "versionCode": 52,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.35.0.apk",
-  "notes": "הקלטת פרופיל תופסת גם כפתורים ללא טקסט (לפי מיקום); מחווה לבחירת פרופיל נהג"
+  "version": "0.36.0",
+  "versionCode": 53,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.36.0.apk",
+  "notes": "פרופילים: זיהוי הגדרת רכב והחלה ברקע (בלי תנועת מסך) כשההגדרה שמורה באנדרואיד"
 }
