@@ -1,6 +1,6 @@
 {
-  "version": "0.39.0",
-  "versionCode": 56,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.39.0.apk",
-  "notes": "תיקון שליטת חלונות/גג/ADAS — רצה דרך עוזר shell-uid (app_process), עוקף את הרשאת ה-signature של BYD"
+  "version": "0.40.0",
+  "versionCode": 57,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.40.0.apk",
+  "notes": "תיקון: שימוש ב-getInstance לקבלת מכשיר ה-BYD (שליטת חלונות/גג/ADAS דרך עוזר shell-uid)"
 }
