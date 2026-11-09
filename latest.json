@@ -1,6 +1,6 @@
 {
-  "version": "0.33.0",
-  "versionCode": 50,
-  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.33.0.apk",
-  "notes": "הוסרו לשוניות נסיעות והתקנה מדיסק און קי"
+  "version": "0.34.0",
+  "versionCode": 51,
+  "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/AzranControl-0.34.0.apk",
+  "notes": "מחוות: נפילה לכיוון ישר כשאלכסון לא ממופה; מסך תשלום נגלל (הקוד נראה); אבחון הקלטת פרופילים"
 }
