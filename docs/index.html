@@ -222,7 +222,8 @@ function writeCtl(){
   if(!CODE) return;
   const body = { watch: (camOn && !document.hidden) ? Date.now() : 0, sel: camSel };
   if(pendingReq) body.req = pendingReq;
-  fetch(`${DB}/track/${CODE}/ctl.json`,{method:"PUT",body:JSON.stringify(body)}).catch(()=>{});
+  // PATCH (merge) so we never wipe ctl/touch that carCtl writes between heartbeats.
+  fetch(`${DB}/track/${CODE}/ctl.json`,{method:"PATCH",body:JSON.stringify(body)}).catch(()=>{});
 }
 async function loadSources(){
   try{
