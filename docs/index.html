@@ -59,6 +59,8 @@
   .live-dot{width:9px;height:9px;border-radius:50%;background:var(--bad);display:inline-block;margin-inline-end:6px;
     animation:pulse 1.4s infinite;}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  #camWrap.ctl{touch-action:none;}
+  #camWrap.ctl img{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none;}
   .cam{width:100%;border-radius:14px;background:#000;aspect-ratio:16/9;object-fit:contain;display:block;}
   .seg{display:flex;gap:8px;margin-bottom:12px;}
   .seg button{flex:1;background:var(--card);border:1px solid var(--line);color:var(--sub);border-radius:10px;
@@ -233,7 +235,7 @@ async function loadSources(){
       const b=document.createElement("button"); b.textContent=c.label||c.id;
       if(c.id===camSel) b.className="on";
       b.onclick=()=>{ camSel=c.id; localStorage.setItem("camSel",camSel); loadSources(); writeCtl();
-        $("#screenCtl").style.display = camSel==="screen" ? "flex" : "none";
+        syncScreenMode();
         $("#camStatus").textContent="מחליף מקור…"; };
       box.appendChild(b);
     });
@@ -250,6 +252,7 @@ async function camDiag(){
   out.push(`last frame ${fr.j? Math.round((Date.now()-fr.j)/1000)+"s ago":"none"} · ${st.j&&st.j.msg||"no status"}`);
   $("#camDiag").textContent=out.join("  |  ");
 }
+function syncScreenMode(){ const on = camSel==="screen"; $("#camWrap").classList.toggle("ctl", on); $("#screenCtl").style.display = on ? "flex" : "none"; }
 function carCtl(body){ if(CODE) fetch(`${DB}/track/${CODE}/ctl/touch.json`,{method:"PUT",body:JSON.stringify(Object.assign({id:Math.random().toString(36).slice(2)},body))}).catch(()=>{}); }
 function carKey(k){ carCtl({type:"key",key:k}); }
 // Map a pointer position on the <img> (object-fit:contain) to fractional image coords 0..1.
@@ -279,8 +282,12 @@ function wireScreenTouch(){
     }
     e.preventDefault();
   };
-  wrap.addEventListener("pointerdown", handler(true));
+  wrap.addEventListener("pointerdown", e => { if(camSel==="screen"){ try{ wrap.setPointerCapture(e.pointerId); }catch(_){} } handler(true)(e); });
   wrap.addEventListener("pointerup", handler(false));
+  wrap.addEventListener("pointercancel", () => { downPt=null; });
+  // iOS scrolls the page on a drag unless the touch itself is cancelled.
+  wrap.addEventListener("touchmove", e => { if(camSel==="screen") e.preventDefault(); }, {passive:false});
+  syncScreenMode();
 }
 function startCamera(){
   if(!CODE) return;
