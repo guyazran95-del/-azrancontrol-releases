@@ -144,35 +144,120 @@
 <div id="pair">
   <img src="icon-512.png" alt="">
   <h2 style="font-size:24px;margin:0 0 6px;">ברוך הבא ל-AZ Drive</h2>
-  <p class="sub" style="max-width:300px;">הזן את <b>קוד הרכב</b> שמופיע באפליקציית הרכב (לשונית רכב → מסלול נסיעה חי). זה מחבר את הטלפון שלך לרכב שלך בלבד.</p>
-  <input id="codeInput" maxlength="6" placeholder="קוד רכב" autocapitalize="characters" autocomplete="off">
-  <button class="btn" id="pairBtn" style="max-width:320px;">חבר</button>
+  <div id="stepLogin">
+    <p class="sub" style="max-width:300px;">התחבר פעם אחת עם חשבון Google. רק החשבון שלך יוכל לצפות ברכב ולשלוט בו.</p>
+    <button class="btn" id="googleBtn" style="max-width:320px;">התחבר עם Google</button>
+    <p class="sub" id="loginErr" style="color:#ff6b6b;max-width:300px;"></p>
+    <p class="sub" style="font-size:12px;margin-top:18px;"><a href="#" id="legacyLink" style="color:inherit">כניסה עם קוד רכב ישן</a></p>
+  </div>
+  <div id="stepCar" style="display:none">
+    <p class="sub" style="max-width:300px;">מחובר כ-<b id="whoami"></b>.<br>ברכב: לשונית רכב → "קשר טלפון חדש", והזן כאן את <b>קוד הקישור</b> שמופיע (או סרוק את ה-QR).</p>
+    <input id="codeInput" maxlength="8" placeholder="קוד קישור" autocapitalize="characters" autocomplete="off">
+    <button class="btn" id="pairBtn" style="max-width:320px;">קשר רכב</button>
+    <p class="sub" id="pairErr" style="color:#ff6b6b;max-width:300px;"></p>
+    <p class="sub" style="font-size:12px;margin-top:14px;"><a href="#" id="logoutLink" style="color:inherit">התנתק</a></p>
+  </div>
+  <div id="stepLegacy" style="display:none">
+    <p class="sub" style="max-width:300px;">הזן את קוד הרכב הישן (5 תווים).</p>
+    <input id="legacyInput" maxlength="14" placeholder="קוד רכב" autocapitalize="characters" autocomplete="off">
+    <button class="btn" id="legacyBtn" style="max-width:320px;">חבר</button>
+  </div>
   <p class="sub" style="font-size:12px;margin-top:14px;">אפשר להוסיף את האפליקציה הזו למסך הבית: שתף → "הוסף למסך הבית".</p>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const DB = "https://azrancontrole-default-rtdb.europe-west1.firebasedatabase.app";
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
-// allow ?code=XXXX to pre-pair (e.g. from a QR)
-const qp = new URLSearchParams(location.search).get("code");
-if (qp) localStorage.setItem("carCode", qp.toUpperCase());
-let CODE = localStorage.getItem("carCode") || "";
+/* ---------- connection: secure (Google account, /cars/{id}) or legacy (/track/{code}) ---------- */
+const QP = new URLSearchParams(location.search);
+if (QP.get("code")) localStorage.setItem("carCode", QP.get("code").toUpperCase());
+let CODE = "";      // non-empty once a car is connected (used as an "is connected" flag + header label)
+let ROOT = "";      // database path of the connected car
+let TOKEN = "";     // Google sign-in token (secure mode only)
+let USER = null, started = false;
+const u = p => `${DB}${ROOT}/${p}.json${TOKEN ? "?auth=" + TOKEN : ""}`;
+const raw = p => `${DB}/${p}.json${TOKEN ? "?auth=" + TOKEN : ""}`;
 
-function showPair(on){ $("#pair").classList.toggle("on", on); }
-function setCode(c){
-  CODE = c.toUpperCase().trim();
-  localStorage.setItem("carCode", CODE);
-  $("#hdrCode").textContent = CODE ? "רכב " + CODE : "";
+// Live streams that survive a token refresh: listeners are kept and re-attached on reopen.
+const STREAMS = [];
+function sse(path){
+  const o = { path, ls: [], onerror: null, es: null,
+    addEventListener(t, f){ this.ls.push([t, f]); if(this.es) this.es.addEventListener(t, f); },
+    open(){ if(this.es) this.es.close(); this.es = new EventSource(u(this.path));
+      this.ls.forEach(([t, f]) => this.es.addEventListener(t, f));
+      this.es.onerror = e => { if(this.onerror) this.onerror(e); }; } };
+  o.open(); STREAMS.push(o); return o;
 }
 
-$("#pairBtn").onclick = () => {
-  const c = $("#codeInput").value.trim();
-  if (c.length < 4) { $("#codeInput").focus(); return; }
-  setCode(c); showPair(false); startAll();
+function showPair(on){ $("#pair").classList.toggle("on", on); }
+function step(id){ ["stepLogin","stepCar","stepLegacy"].forEach(x => $("#"+x).style.display = x===id ? "block" : "none"); }
+function connect(root, label){
+  ROOT = root; CODE = label; $("#hdrCode").textContent = label; showPair(false);
+  if(!started){ started = true; startAll(); }
+}
+
+firebase.initializeApp({ apiKey: "AIzaSyAeT_i7ds4iBJrgRPtY11_3Z2XgNa-U9nA", authDomain: "azrancontrole.firebaseapp.com",
+  projectId: "azrancontrole", databaseURL: DB });
+const auth = firebase.auth();
+
+async function claimCar(code){
+  code = code.toUpperCase().trim();
+  const r = await fetch(raw("pair/" + code));
+  const j = r.ok ? await r.json() : null;
+  if(!j || !j.car) throw new Error("קוד הקישור לא נמצא או שפג תוקפו. צור קוד חדש ברכב.");
+  const w = await fetch(raw(`cars/${j.car}/claims/${USER.uid}`), { method: "PUT", body: JSON.stringify(code) });
+  if(!w.ok) throw new Error("הקישור נדחה (" + w.status + "). צור קוד חדש ברכב ונסה שוב.");
+  localStorage.setItem("carUid", j.car);
+}
+
+auth.onAuthStateChanged(async user => {
+  USER = user;
+  if(user){
+    TOKEN = await user.getIdToken();
+    $("#whoami").textContent = user.email || "";
+    const pc = QP.get("pair");
+    if(pc && !localStorage.getItem("carUid")){ try{ await claimCar(pc); }catch(e){ $("#pairErr").textContent = e.message; } }
+    const car = localStorage.getItem("carUid");
+    if(car) connect("/cars/" + car, "🔒 " + (user.email || "מחובר"));
+    else { showPair(true); step("stepCar"); }
+  } else {
+    TOKEN = "";
+    const legacy = localStorage.getItem("carCode");
+    if(legacy && !QP.get("pair")) connect("/track/" + legacy, "רכב " + legacy);
+    else { showPair(true); step("stepLogin"); }
+  }
+});
+// Google tokens last an hour: refresh and reopen the live streams with the new one.
+setInterval(async () => { if(USER){ try{ TOKEN = await USER.getIdToken(true); STREAMS.forEach(s => s.open()); }catch(e){} } }, 40*60*1000);
+
+$("#googleBtn").onclick = async () => {
+  $("#loginErr").textContent = "";
+  const prov = new firebase.auth.GoogleAuthProvider();
+  try{ await auth.signInWithPopup(prov); }
+  catch(e){
+    if(String(e.code).includes("popup")){ try{ await auth.signInWithRedirect(prov); return; }catch(e2){ e = e2; } }
+    $("#loginErr").textContent = "ההתחברות נכשלה: " + (e.code || e.message);
+  }
 };
+$("#pairBtn").onclick = async () => {
+  const c = $("#codeInput").value.trim(); $("#pairErr").textContent = "";
+  if(c.length < 6){ $("#codeInput").focus(); return; }
+  try{ await claimCar(c); connect("/cars/" + localStorage.getItem("carUid"), "🔒 " + (USER.email || "מחובר")); }
+  catch(e){ $("#pairErr").textContent = e.message; }
+};
+$("#logoutLink").onclick = e => { e.preventDefault(); localStorage.removeItem("carUid"); auth.signOut(); };
+$("#legacyLink").onclick = e => { e.preventDefault(); step("stepLegacy"); };
+$("#legacyBtn").onclick = () => {
+  const c = $("#legacyInput").value.trim().toUpperCase(); if(c.length < 4) return;
+  localStorage.setItem("carCode", c); connect("/track/" + c, "רכב " + c);
+};
+// header chip: tap to switch car / sign out
+$("#hdrCode").onclick = () => { if(confirm("להתנתק מהרכב הזה?")){ localStorage.removeItem("carUid"); localStorage.removeItem("carCode"); if(USER) auth.signOut(); location.href = location.pathname; } };
 
 // tabs
 $$(".tabbar button").forEach(b => b.onclick = () => {
@@ -208,9 +293,9 @@ function addPoint(lat,lng){
 }
 async function loadRoute(){
   if(!CODE) return;
-  try{ const j = await (await fetch(`${DB}/track/${CODE}/pts.json`)).json();
+  try{ const j = await (await fetch(u(`pts`))).json();
     if(j) Object.keys(j).sort().forEach(k=>{ if(j[k]) addPoint(j[k].lat,j[k].lng); }); }catch(e){}
-  const es = new EventSource(`${DB}/track/${CODE}/live.json`);
+  const es = sse(`live`);
   const on = ev => { try{ const d=JSON.parse(ev.data).data;
     if(d&&typeof d.lat==="number"){ $("#rstatus").textContent="חי";
       if(typeof d.spd==="number"&&d.spd>=0)$("#kmh").textContent=d.spd; addPoint(d.lat,d.lng);} }catch(e){} };
@@ -225,11 +310,11 @@ function writeCtl(){
   const body = { watch: (camOn && !document.hidden) ? Date.now() : 0, sel: camSel };
   if(pendingReq) body.req = pendingReq;
   // PATCH (merge) so we never wipe ctl/touch that carCtl writes between heartbeats.
-  fetch(`${DB}/track/${CODE}/ctl.json`,{method:"PATCH",body:JSON.stringify(body)}).catch(()=>{});
+  fetch(u(`ctl`),{method:"PATCH",body:JSON.stringify(body)}).catch(()=>{});
 }
 async function loadSources(){
   try{
-    const list = await (await fetch(`${DB}/track/${CODE}/cam/list.json`)).json();
+    const list = await (await fetch(u(`cam/list`))).json();
     const box = $("#camSrc"); box.innerHTML="";
     (list||[]).forEach(c=>{
       const b=document.createElement("button"); b.textContent=c.label||c.id;
@@ -244,19 +329,19 @@ async function loadSources(){
 /* Plain-words connection check, shown under the picture, so a screenshot tells what is missing. */
 async function camDiag(){
   const out=[];
-  const get = async (path) => { try{ const r=await fetch(`${DB}/track/${CODE}/${path}.json`); return {s:r.status, j: r.ok ? await r.json() : null}; }catch(e){ return {s:"net", j:null}; } };
+  const get = async (path) => { try{ const r=await fetch(u(`${path}`)); return {s:r.status, j: r.ok ? await r.json() : null}; }catch(e){ return {s:"net", j:null}; } };
   const info=await get("info"), list=await get("cam/list"), st=await get("cam/status"), fr=await get("cam/frame/t"), hb=await get("cam/hb");
-  let w="?"; try{ const r=await fetch(`${DB}/track/${CODE}/ctl/ping.json`,{method:"PUT",body:JSON.stringify(Date.now())}); w=r.status; }catch(e){ w="net"; }
+  let w="?"; try{ const r=await fetch(u(`ctl/ping`),{method:"PUT",body:JSON.stringify(Date.now())}); w=r.status; }catch(e){ w="net"; }
   out.push(`read ${list.s} · write ${w}`);
   out.push(`car app ${info.j&&info.j.app||"-"} · sources ${list.j?list.j.length:0}`);
   out.push(`last frame ${fr.j? Math.round((Date.now()-fr.j)/1000)+"s ago":"none"} · ${st.j&&st.j.msg||"no status"}`);
   // Car heartbeat: compare server time to server time, so clock differences don't matter.
-  let now=Date.now(); try{ await fetch(`${DB}/track/${CODE}/ctl/now.json`,{method:"PUT",body:'{".sv":"timestamp"}'}); const n=await get("ctl/now"); if(n.j) now=n.j; }catch(e){}
+  let now=Date.now(); try{ await fetch(u(`ctl/now`),{method:"PUT",body:'{".sv":"timestamp"}'}); const n=await get("ctl/now"); if(n.j) now=n.j; }catch(e){}
   out.push(hb.j&&hb.j.t ? `car alive ${Math.max(0,Math.round((now-hb.j.t)/1000))}s ago (${hb.j.what||""})` : "car alive: unknown");
   $("#camDiag").textContent=out.join("  |  ");
 }
 function syncScreenMode(){ const on = camSel==="screen"; $("#camWrap").classList.toggle("ctl", on); $("#screenCtl").style.display = on ? "flex" : "none"; }
-function carCtl(body){ if(CODE) fetch(`${DB}/track/${CODE}/ctl/touch.json`,{method:"PUT",body:JSON.stringify(Object.assign({id:Math.random().toString(36).slice(2)},body))}).catch(()=>{}); }
+function carCtl(body){ if(CODE) fetch(u(`ctl/touch`),{method:"PUT",body:JSON.stringify(Object.assign({id:Math.random().toString(36).slice(2)},body))}).catch(()=>{}); }
 function carKey(k){ carCtl({type:"key",key:k}); }
 // Map a pointer position on the <img> (object-fit:contain) to fractional image coords 0..1.
 function imgFrac(img, clientX, clientY){
@@ -295,7 +380,7 @@ function wireScreenTouch(){
 function startCamera(){
   if(!CODE) return;
   loadSources(); camDiag(); wireScreenTouch(); setInterval(()=>{ camDiag(); if(!$("#camSrc").children.length) loadSources(); }, 8000);
-  const es = new EventSource(`${DB}/track/${CODE}/cam/frame.json`);
+  const es = sse(`cam/frame`);
   const on = ev => { try{ const d=JSON.parse(ev.data).data;
     if(d&&d.d){
       lastFrameAt = Date.now();
@@ -305,7 +390,7 @@ function startCamera(){
       img.src = "data:image/jpeg;base64," + d.d;
     }}catch(e){} };
   es.addEventListener("put",on); es.addEventListener("patch",on);
-  const st = new EventSource(`${DB}/track/${CODE}/cam/status.json`);
+  const st = sse(`cam/status`);
   const onSt = ev => { try{ const d=JSON.parse(ev.data).data; if(d&&d.msg) $("#camStatus").textContent=d.msg; }catch(e){} };
   st.addEventListener("put",onSt); st.addEventListener("patch",onSt);
   writeCtl(); setInterval(writeCtl, 3000);
@@ -318,7 +403,7 @@ async function loadRecordings(kind){
   if(!CODE) return;
   $("#recList").innerHTML="";
   try{
-    const j = await (await fetch(`${DB}/track/${CODE}/rec/${kind}.json`)).json();
+    const j = await (await fetch(u(`rec/${kind}`))).json();
     const keys = j ? Object.keys(j).sort().reverse() : [];
     if(!keys.length){ $("#recEmpty").style.display="block"; return; }
     $("#recEmpty").style.display="none";
@@ -342,12 +427,12 @@ function playClip(path, title){
   const frames=[]; let shown=0, n=0, total=0, state="";
   playPoll = setInterval(async ()=>{
     try{
-      const m = await (await fetch(`${DB}/track/${CODE}/rec/play.json`)).json();
+      const m = await (await fetch(u(`rec/play`))).json();
       if(!m || m.id!==id) return;
       state=m.state; n=m.n||0; total=m.total||0;
       if(state==="error"){ $("#playMsg").textContent="שגיאה: "+(m.msg||""); clearInterval(playPoll); return; }
       for(let i=frames.length;i<n;i++){
-        const f = await (await fetch(`${DB}/track/${CODE}/rec/playf/${i}.json`)).json();
+        const f = await (await fetch(u(`rec/playf/${i}`))).json();
         frames.push(f||"");
       }
       if(state==="ready" && frames.length>=total) clearInterval(playPoll);
@@ -364,15 +449,10 @@ function playClip(path, title){
 $$(".tabbar button").forEach(b => b.addEventListener("click", () => { camOn = b.dataset.tab === "cam"; writeCtl(); }));
 
 function startAll(){
-  setCode(CODE);
   startCamera();
   loadRecordings("drive");
   // route starts when its tab is opened (map needs a visible container)
 }
-
-// boot
-if(!CODE){ showPair(true); }
-else { setCode(CODE); startAll(); }
 
 // service worker (installability + offline shell)
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
