@@ -172,7 +172,7 @@ $$(".tabbar button").forEach(b => b.onclick = () => {
   $$(".view").forEach(x => x.classList.remove("on"));
   b.classList.add("on");
   $("#v-" + b.dataset.tab).classList.add("on");
-  if (b.dataset.tab === "route") initMap();
+  if (b.dataset.tab === "route"){ initMap(); setTimeout(()=>{ if(map) map.invalidateSize(); }, 200); }
 });
 
 // recordings segment
@@ -189,6 +189,7 @@ function initMap(){
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(map);
   line = L.polyline([], { color:"#39b6ff", weight:5 }).addTo(map);
   loadRoute();
+  setTimeout(()=>{ if(map) map.invalidateSize(); }, 300);
 }
 function addPoint(lat,lng){
   pts.push([lat,lng]); line.setLatLngs(pts); $("#pts").textContent = pts.length;
