@@ -86,6 +86,11 @@
       </div>
       <div class="seg" id="camSrc"></div>
       <div id="camWrap"></div>
+      <div id="screenCtl" style="display:none;gap:8px;margin:10px 0;justify-content:center">
+        <button class="btn ghost" style="width:auto;padding:8px 18px" onclick="carKey(4)">‹ חזור</button>
+        <button class="btn ghost" style="width:auto;padding:8px 18px" onclick="carKey(3)">⌂ בית</button>
+        <span class="sub" style="align-self:center">גע או גרור על המסך כדי לשלוט</span>
+      </div>
       <p class="sub" id="camStatus" style="text-align:center;margin:10px 0"></p>
       <p class="sub" id="camDiag" style="text-align:center;margin:10px 0;font-size:12px;opacity:.75;direction:ltr"></p>
       <div class="empty" id="camEmpty">
@@ -227,6 +232,7 @@ async function loadSources(){
       const b=document.createElement("button"); b.textContent=c.label||c.id;
       if(c.id===camSel) b.className="on";
       b.onclick=()=>{ camSel=c.id; localStorage.setItem("camSel",camSel); loadSources(); writeCtl();
+        $("#screenCtl").style.display = camSel==="screen" ? "flex" : "none";
         $("#camStatus").textContent="מחליף מקור…"; };
       box.appendChild(b);
     });
@@ -243,9 +249,41 @@ async function camDiag(){
   out.push(`last frame ${fr.j? Math.round((Date.now()-fr.j)/1000)+"s ago":"none"} · ${st.j&&st.j.msg||"no status"}`);
   $("#camDiag").textContent=out.join("  |  ");
 }
+function carCtl(body){ if(CODE) fetch(`${DB}/track/${CODE}/ctl/touch.json`,{method:"PUT",body:JSON.stringify(Object.assign({id:Math.random().toString(36).slice(2)},body))}).catch(()=>{}); }
+function carKey(k){ carCtl({type:"key",key:k}); }
+// Map a pointer position on the <img> (object-fit:contain) to fractional image coords 0..1.
+function imgFrac(img, clientX, clientY){
+  const r = img.getBoundingClientRect();
+  const nw = img.naturalWidth||r.width, nh = img.naturalHeight||r.height;
+  const scale = Math.min(r.width/nw, r.height/nh);
+  const dw = nw*scale, dh = nh*scale;
+  const ox = r.left + (r.width-dw)/2, oy = r.top + (r.height-dh)/2;
+  const fx = (clientX-ox)/dw, fy = (clientY-oy)/dh;
+  if(fx<0||fx>1||fy<0||fy>1) return null;
+  return {fx:+fx.toFixed(4), fy:+fy.toFixed(4)};
+}
+let downPt=null, downT=0;
+function wireScreenTouch(){
+  const wrap = $("#camWrap");
+  const handler = (down) => (e) => {
+    const img = $("#camImg"); if(!img || camSel!=="screen") return;
+    const pt = e.touches? e.touches[0] : e;
+    const f = imgFrac(img, pt.clientX, pt.clientY); if(!f) return;
+    if(down){ downPt=f; downT=Date.now(); }
+    else if(downPt){
+      const dx=Math.abs(f.fx-downPt.fx), dy=Math.abs(f.fy-downPt.fy);
+      if(dx<0.02 && dy<0.02) carCtl({type:"tap",fx:downPt.fx,fy:downPt.fy});
+      else carCtl({type:"swipe",fx:downPt.fx,fy:downPt.fy,fx2:f.fx,fy2:f.fy,ms:Math.min(600,Math.max(100,Date.now()-downT))});
+      downPt=null;
+    }
+    e.preventDefault();
+  };
+  wrap.addEventListener("pointerdown", handler(true));
+  wrap.addEventListener("pointerup", handler(false));
+}
 function startCamera(){
   if(!CODE) return;
-  loadSources(); camDiag(); setInterval(()=>{ camDiag(); if(!$("#camSrc").children.length) loadSources(); }, 8000);
+  loadSources(); camDiag(); wireScreenTouch(); setInterval(()=>{ camDiag(); if(!$("#camSrc").children.length) loadSources(); }, 8000);
   const es = new EventSource(`${DB}/track/${CODE}/cam/frame.json`);
   const on = ev => { try{ const d=JSON.parse(ev.data).data;
     if(d&&d.d){
