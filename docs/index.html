@@ -81,13 +81,15 @@
   <section class="view on" id="v-cam">
     <div class="pad">
       <div class="card">
-        <h2>📷 מצלמות הרכב <span class="badge">AI</span></h2>
-        <p class="sub">צפייה חיה במצלמות הרכב עם זיהוי חכם (הולך רגל / אופניים / רכב). פעיל כשיש אינטרנט ברכב.</p>
+        <h2>📷 מצלמות הרכב</h2>
+        <p class="sub">צפייה חיה במצלמות הרכב. פעיל כשהרכב דלוק, מחובר לאינטרנט, ו"מצלמות והקלטות בטלפון" מופעל באפליקציית הרכב.</p>
       </div>
+      <div class="seg" id="camSrc"></div>
       <div id="camWrap"></div>
+      <p class="sub" id="camStatus" style="text-align:center;margin:10px 0"></p>
       <div class="empty" id="camEmpty">
         <span class="live-dot"></span>ממתין לשידור מהרכב…<br>
-        ודא שהרכב מחובר לאינטרנט ושהשידור הופעל באפליקציית הרכב.
+        ודא שהרכב דלוק ומחובר לאינטרנט, ושהמתג "מצלמות והקלטות בטלפון" מופעל בלשונית רכב.
       </div>
     </div>
   </section>
@@ -98,6 +100,12 @@
       <div class="seg">
         <button class="on" data-rec="drive">🚗 נסיעה</button>
         <button data-rec="park">🅿️ חנייה</button>
+      </div>
+      <div class="card" id="player" hidden>
+        <h2 id="playTitle"></h2>
+        <img id="playImg" class="cam" alt="">
+        <p class="sub" id="playMsg" style="text-align:center;margin:10px 0"></p>
+        <button class="btn ghost" onclick="stopClip()">סגור</button>
       </div>
       <div id="recList"></div>
       <div class="empty" id="recEmpty">אין הקלטות זמינות עדיין.<br>הקלטות נסיעה וחנייה יופיעו כאן כשהרכב מחובר.</div>
@@ -201,23 +209,49 @@ async function loadRoute(){
   es.onerror = () => $("#rstatus").textContent="…";
 }
 
-/* ---------- LIVE CAMERA (wires up when the car publishes /track/{code}/cam) ---------- */
+/* ---------- LIVE CAMERA: the car streams only while this app keeps "watch" fresh ---------- */
+let camSel = localStorage.getItem("camSel") || "", camOn = true, lastFrameAt = 0, pendingReq = null;
+function writeCtl(){
+  if(!CODE) return;
+  const body = { watch: (camOn && !document.hidden) ? Date.now() : 0, sel: camSel };
+  if(pendingReq) body.req = pendingReq;
+  fetch(`${DB}/track/${CODE}/ctl.json`,{method:"PUT",body:JSON.stringify(body)}).catch(()=>{});
+}
+async function loadSources(){
+  try{
+    const list = await (await fetch(`${DB}/track/${CODE}/cam/list.json`)).json();
+    const box = $("#camSrc"); box.innerHTML="";
+    (list||[]).forEach(c=>{
+      const b=document.createElement("button"); b.textContent=c.label||c.id;
+      if(c.id===camSel) b.className="on";
+      b.onclick=()=>{ camSel=c.id; localStorage.setItem("camSel",camSel); loadSources(); writeCtl();
+        $("#camStatus").textContent="מחליף מקור…"; };
+      box.appendChild(b);
+    });
+  }catch(e){}
+}
 function startCamera(){
   if(!CODE) return;
+  loadSources();
   const es = new EventSource(`${DB}/track/${CODE}/cam/frame.json`);
   const on = ev => { try{ const d=JSON.parse(ev.data).data;
     if(d&&d.d){
+      lastFrameAt = Date.now();
       $("#camEmpty").style.display="none";
       let img = $("#camImg");
       if(!img){ img=document.createElement("img"); img.id="camImg"; img.className="cam"; $("#camWrap").appendChild(img); }
       img.src = "data:image/jpeg;base64," + d.d;
     }}catch(e){} };
   es.addEventListener("put",on); es.addEventListener("patch",on);
-  // tell the car someone is watching, so it streams
-  setInterval(()=>{ if(CODE) fetch(`${DB}/track/${CODE}/cam/watch.json`,{method:"PUT",body:JSON.stringify(Date.now())}); }, 3000);
+  const st = new EventSource(`${DB}/track/${CODE}/cam/status.json`);
+  const onSt = ev => { try{ const d=JSON.parse(ev.data).data; if(d&&d.msg) $("#camStatus").textContent=d.msg; }catch(e){} };
+  st.addEventListener("put",onSt); st.addEventListener("patch",onSt);
+  writeCtl(); setInterval(writeCtl, 3000);
+  setInterval(()=>{ if(lastFrameAt && Date.now()-lastFrameAt>15000) $("#camStatus").textContent="אין תמונה חדשה מהרכב (הרכב כבוי או בלי אינטרנט?)"; }, 5000);
 }
 
-/* ---------- RECORDINGS (wires up when the car publishes /track/{code}/rec) ---------- */
+/* ---------- RECORDINGS: list from the car, played back as one frame per second ---------- */
+let playTimer = null, playPoll = null;
 async function loadRecordings(kind){
   if(!CODE) return;
   $("#recList").innerHTML="";
@@ -228,12 +262,44 @@ async function loadRecordings(kind){
     $("#recEmpty").style.display="none";
     keys.forEach(k=>{
       const r=j[k]; const el=document.createElement("div"); el.className="card";
-      el.innerHTML=`<h2>${kind==='drive'?'🚗':'🅿️'} ${r.name||k}</h2><p class="sub">${r.time||''} · ${r.size||''}</p>`;
-      if(r.url){ const a=document.createElement("a"); a.href=r.url; a.className="btn ghost"; a.textContent="נגן"; a.target="_blank"; el.appendChild(a); }
-      $("#recList").appendChild(el);
+      const h=document.createElement("h2"); h.textContent=(kind==='drive'?'🚗 ':'🅿️ ')+(r.name||k);
+      const p=document.createElement("p"); p.className="sub"; p.textContent=[r.time,r.size].filter(Boolean).join(" · ");
+      const b=document.createElement("button"); b.className="btn ghost"; b.textContent="נגן";
+      b.onclick=()=>playClip(r.path, h.textContent);
+      el.append(h,p,b); $("#recList").appendChild(el);
     });
   }catch(e){ $("#recEmpty").style.display="block"; }
 }
+function stopClip(){ clearInterval(playTimer); clearInterval(playPoll); pendingReq=null; $("#player").hidden=true; }
+function playClip(path, title){
+  stopClip();
+  const id = Math.random().toString(36).slice(2,10);
+  pendingReq = { id, path }; writeCtl();
+  $("#player").hidden=false; $("#playTitle").textContent=title; $("#playImg").removeAttribute("src");
+  $("#playMsg").textContent="מבקש את ההקלטה מהרכב…";
+  const frames=[]; let shown=0, n=0, total=0, state="";
+  playPoll = setInterval(async ()=>{
+    try{
+      const m = await (await fetch(`${DB}/track/${CODE}/rec/play.json`)).json();
+      if(!m || m.id!==id) return;
+      state=m.state; n=m.n||0; total=m.total||0;
+      if(state==="error"){ $("#playMsg").textContent="שגיאה: "+(m.msg||""); clearInterval(playPoll); return; }
+      for(let i=frames.length;i<n;i++){
+        const f = await (await fetch(`${DB}/track/${CODE}/rec/playf/${i}.json`)).json();
+        frames.push(f||"");
+      }
+      if(state==="ready" && frames.length>=total) clearInterval(playPoll);
+    }catch(e){}
+  }, 1500);
+  playTimer = setInterval(()=>{
+    if(shown<frames.length){
+      if(frames[shown]) $("#playImg").src="data:image/jpeg;base64,"+frames[shown];
+      shown++; $("#playMsg").textContent=`שנייה ${shown}`+(total?` מתוך ${total}`:"")+(state!=="ready"?" · טוען…":"");
+    } else if(state==="ready" && total && shown>=total){ shown=0; }
+  }, 500);
+}
+
+$$(".tabbar button").forEach(b => b.addEventListener("click", () => { camOn = b.dataset.tab === "cam"; writeCtl(); }));
 
 function startAll(){
   setCode(CODE);
