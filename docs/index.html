@@ -87,6 +87,7 @@
       <div class="seg" id="camSrc"></div>
       <div id="camWrap"></div>
       <p class="sub" id="camStatus" style="text-align:center;margin:10px 0"></p>
+      <p class="sub" id="camDiag" style="text-align:center;margin:10px 0;font-size:12px;opacity:.75;direction:ltr"></p>
       <div class="empty" id="camEmpty">
         <span class="live-dot"></span>ממתין לשידור מהרכב…<br>
         ודא שהרכב דלוק ומחובר לאינטרנט, ושהמתג "מצלמות והקלטות בטלפון" מופעל בלשונית רכב.
@@ -231,9 +232,20 @@ async function loadSources(){
     });
   }catch(e){}
 }
+/* Plain-words connection check, shown under the picture, so a screenshot tells what is missing. */
+async function camDiag(){
+  const out=[];
+  const get = async (path) => { try{ const r=await fetch(`${DB}/track/${CODE}/${path}.json`); return {s:r.status, j: r.ok ? await r.json() : null}; }catch(e){ return {s:"net", j:null}; } };
+  const info=await get("info"), list=await get("cam/list"), st=await get("cam/status"), fr=await get("cam/frame/t");
+  let w="?"; try{ const r=await fetch(`${DB}/track/${CODE}/ctl/ping.json`,{method:"PUT",body:JSON.stringify(Date.now())}); w=r.status; }catch(e){ w="net"; }
+  out.push(`read ${list.s} · write ${w}`);
+  out.push(`car app ${info.j&&info.j.app||"-"} · sources ${list.j?list.j.length:0}`);
+  out.push(`last frame ${fr.j? Math.round((Date.now()-fr.j)/1000)+"s ago":"none"} · ${st.j&&st.j.msg||"no status"}`);
+  $("#camDiag").textContent=out.join("  |  ");
+}
 function startCamera(){
   if(!CODE) return;
-  loadSources();
+  loadSources(); camDiag(); setInterval(()=>{ camDiag(); if(!$("#camSrc").children.length) loadSources(); }, 8000);
   const es = new EventSource(`${DB}/track/${CODE}/cam/frame.json`);
   const on = ev => { try{ const d=JSON.parse(ev.data).data;
     if(d&&d.d){
