@@ -68,6 +68,7 @@
   .seg button.on{background:var(--accent2);color:#fff;border-color:var(--accent2);}
   .badge{display:inline-block;background:#11351f;color:var(--ok);border:1px solid #1d5e38;border-radius:20px;
     padding:3px 10px;font-size:12px;margin-top:8px;}
+img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;object-fit:contain;background:#000;z-index:9999;border-radius:0;margin:0}
 </style>
 </head>
 <body>
@@ -111,8 +112,11 @@
       </div>
       <div class="card" id="player" hidden>
         <h2 id="playTitle"></h2>
-        <img id="playImg" class="cam" alt="">
+        <img id="playImg" class="cam" alt="" onclick="toggleFull(this)">
         <p class="sub" id="playMsg" style="text-align:center;margin:10px 0"></p>
+        <p class="sub" style="text-align:center;margin:0 0 10px">הקש על התמונה להגדלה למסך מלא</p>
+        <button class="btn" id="saveBtn" onclick="saveClip()">⬇️ שמור סרטון בטלפון</button>
+        <p class="sub" id="saveMsg" style="text-align:center;margin:8px 0"></p>
         <button class="btn ghost" onclick="stopClip()">סגור</button>
       </div>
       <div id="recList"></div>
@@ -296,6 +300,7 @@ function writeCtl(){
   if(!CODE) return;
   const body = { watch: (camOn && !document.hidden) ? Date.now() : 0, sel: camSel };
   if(pendingReq) body.req = pendingReq;
+  if(pendingDl) body.dl = pendingDl;
   // PATCH (merge) so we never wipe ctl/touch that carCtl writes between heartbeats.
   fetch(u(`ctl`),{method:"PATCH",body:JSON.stringify(body)}).catch(()=>{});
 }
@@ -404,9 +409,58 @@ async function loadRecordings(kind){
     });
   }catch(e){ $("#recEmpty").style.display="block"; }
 }
-function stopClip(){ clearInterval(playTimer); clearInterval(playPoll); pendingReq=null; $("#player").hidden=true; }
+function toggleFull(img){ img.classList.toggle("full"); }
+let pendingDl = null, curClip = null, savePoll = null;
+function stopSave(){ clearInterval(savePoll); savePoll=null;
+  if(pendingDl){ pendingDl=null; fetch(u(`ctl`),{method:"PATCH",body:JSON.stringify({dl:null})}).catch(()=>{}); }
+  $("#saveBtn").disabled=false; }
+function b64bytes(b){ const bin=atob(b), a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a; }
+/* Save to phone: the car uploads the file in pieces, we stitch them and hand the result to the browser. */
+function saveClip(){
+  if(!curClip || savePoll) return;
+  const id = Math.random().toString(36).slice(2,10), clip = curClip;
+  pendingDl = { id, path: clip.path }; writeCtl();
+  $("#saveBtn").disabled=true; $("#saveMsg").textContent="מבקש את הקובץ מהרכב…";
+  const parts=[]; let busy=false, started=Date.now();
+  savePoll = setInterval(async ()=>{
+    if(busy) return; busy=true;
+    try{
+      const m = await (await fetch(u(`rec/dl`))).json();
+      if(!m || m.id!==id){ if(Date.now()-started>40000){ $("#saveMsg").textContent="הרכב לא הגיב. ודא שהוא דלוק ומחובר."; stopSave(); } return; }
+      if(m.state==="error"){ $("#saveMsg").textContent="שגיאה: "+(m.msg||""); stopSave(); return; }
+      while(parts.length < (m.n||0)){
+        const c = await (await fetch(u(`rec/dlc/${parts.length}`))).json();
+        if(typeof c!=="string") break;
+        parts.push(b64bytes(c));
+      }
+      const mb = m.size ? (m.size/1e6).toFixed(0)+" MB" : "";
+      $("#saveMsg").textContent = m.total ? `מוריד ${Math.round(100*parts.length/m.total)}% · ${mb}` : "הרכב מכין את הקובץ…";
+      if(m.state==="ready" && parts.length>=m.total){
+        const name = "AZDrive-"+clip.title.replace(/[^0-9]+/g,"-").replace(/^-|-$/g,"")+".mp4";
+        const file = new File(parts, name, {type:"video/mp4"});
+        stopSave();
+        // On a phone the share sheet is what offers "Save Video"; elsewhere fall back to a plain download.
+        let shared=false;
+        if(navigator.canShare && navigator.canShare({files:[file]})){
+          $("#saveMsg").textContent="הקובץ מוכן.";
+          const b=document.createElement("button"); b.className="btn"; b.textContent="📲 שמור / שתף";
+          b.onclick=async()=>{ try{ await navigator.share({files:[file]}); }catch(e){} };
+          $("#saveMsg").append(document.createElement("br"), b); shared=true;
+        }
+        if(!shared){
+          const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=name;
+          document.body.appendChild(a); a.click(); a.remove();
+          $("#saveMsg").textContent="הקובץ נשמר בהורדות.";
+        }
+      }
+    }catch(e){} finally{ busy=false; }
+  }, 1500);
+}
+function stopClip(){ clearInterval(playTimer); clearInterval(playPoll); pendingReq=null; stopSave(); $("#saveMsg").textContent="";
+  $("#playImg").classList.remove("full"); $("#player").hidden=true; }
 function playClip(path, title){
   stopClip();
+  curClip = { path, title };
   const id = Math.random().toString(36).slice(2,10);
   pendingReq = { id, path }; writeCtl();
   $("#player").hidden=false; $("#playTitle").textContent=title; $("#playImg").removeAttribute("src");
