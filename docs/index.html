@@ -124,8 +124,8 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
           <input type="range" id="playSeek" min="0" max="0" value="0" style="flex:1" oninput="seekTo(this.value)">
         </div>
         <p class="sub" id="playMsg" style="text-align:center;margin:10px 0"></p>
-        <p class="sub" id="playHint" style="text-align:center;margin:0 0 10px">זו תצוגה מהירה בלי קול. הקש על התמונה להגדלה. לסרטון המלא עם קול, טען אותו:</p>
-        <button class="btn" id="saveBtn" onclick="saveClip()">🔊 טען סרטון מלא (עם קול) ושמירה</button>
+        <p class="sub" id="playHint" style="text-align:center;margin:0 0 10px">זו תצוגה מהירה בלי קול. הקש על התמונה להגדלה. כדי לשמוע, נגן את הסרטון המלא (לא נשמר בטלפון אלא אם תבחר):</p>
+        <button class="btn" id="saveBtn" onclick="saveClip()">🔊 נגן את הסרטון המלא עם קול</button>
         <p class="sub" id="saveMsg" style="text-align:center;margin:8px 0"></p>
         <button class="btn ghost" onclick="stopClip()">סגור</button>
       </div>
@@ -498,19 +498,14 @@ function saveClip(){
         vidUrl=URL.createObjectURL(file); v.src=vidUrl; v.hidden=false; v.volume=1;
         $("#playImg").hidden=true; $("#playBar").style.display="none"; $("#playHint").hidden=true; $("#playMsg").textContent="";
         v.play().catch(()=>{});
-        // On a phone the share sheet is what offers "Save Video"; elsewhere fall back to a plain download.
-        let shared=false;
-        if(navigator.canShare && navigator.canShare({files:[file]})){
-          $("#saveMsg").textContent="הקובץ מוכן.";
-          const b=document.createElement("button"); b.className="btn"; b.textContent="📲 שמור / שתף";
-          b.onclick=async()=>{ try{ await navigator.share({files:[file]}); }catch(e){} };
-          $("#saveMsg").append(document.createElement("br"), b); shared=true;
-        }
-        if(!shared){
-          const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=name;
-          document.body.appendChild(a); a.click(); a.remove();
-          $("#saveMsg").textContent="הקובץ נשמר בהורדות.";
-        }
+        // Nothing is saved by itself: the clip only plays. Saving is a separate, explicit button.
+        $("#saveMsg").textContent="";
+        const b=document.createElement("button"); b.className="btn ghost"; b.textContent="⬇️ שמור את הסרטון בטלפון";
+        b.onclick=async()=>{
+          if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file]}); }catch(e){} }
+          else { const a=document.createElement("a"); a.href=vidUrl; a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+        };
+        $("#saveMsg").append(b);
       }
     }catch(e){} finally{ busy=false; }
   }, 1500);
