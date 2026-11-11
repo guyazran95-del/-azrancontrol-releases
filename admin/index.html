@@ -378,39 +378,70 @@ function renderSubs(docs) {
   const box = $("subsList"); box.replaceChildren();
   const now = Date.now();
   if (!docs.length) { const d = document.createElement("div"); d.className = "empty"; d.textContent = "עדיין אין מכשירים רשומים."; box.append(d); return; }
-  // sort: expired first, then trial, then paid
+  // order: waiting for approval first (registered, not paid), then expired, then trial, then paid
   const items = docs.map(dc => {
     const v = dc.data();
     const created = v.createdAt?.toMillis ? v.createdAt.toMillis()
                    : (v.lastSeen?.toMillis ? v.lastSeen.toMillis() : now);
     const paidUntil = v.paidUntil?.toMillis ? v.paidUntil.toMillis() : 0;
     const trialEnd = created + 7 * 86400000;
-    const paid = paidUntil > now;
-    const active = paid || now < trialEnd;
-    return { id: dc.id, model: v.model || "רכב", ver: v.version || "", paid, active, paidUntil, trialEnd };
-  }).sort((a, b) => (a.active - b.active) || (a.paid - b.paid));
+    const blocked = v.blocked === true;
+    const paid = paidUntil > now && !blocked;
+    const active = !blocked && (paid || now < trialEnd);
+    const pending = !!v.plate && !paid && !blocked;
+    return { id: dc.id, model: v.model || "רכב", ver: v.version || "", paid, active, paidUntil, trialEnd, blocked, pending,
+             plate: v.plate || "", vin: v.vin || "", owner: v.ownerName || "",
+             seen: v.lastSeen?.toMillis ? v.lastSeen.toMillis() : 0 };
+  }).sort((a, b) => (b.pending - a.pending) || (a.active - b.active) || (a.paid - b.paid));
+  // the same car registered twice (e.g. after a reinstall) shows up as a repeated VIN
+  const vinCount = {}; items.forEach(it => { if (it.vin) vinCount[it.vin] = (vinCount[it.vin] || 0) + 1; });
+  const waiting = items.filter(it => it.pending).length;
+  const head = document.createElement("div"); head.className = "hint";
+  head.textContent = waiting ? ("ממתינים לאישור: " + waiting) : "אין רכבים שממתינים לאישור.";
+  head.style.cssText = "margin:0 0 10px;font-weight:600;color:" + (waiting ? "var(--warn)" : "var(--ok)");
+  box.append(head);
+  document.title = (waiting ? "(" + waiting + ") " : "") + "AZ Drive – ניהול";
   for (const it of items) {
     const card = document.createElement("div"); card.className = "card app";
     const info = document.createElement("div"); info.className = "info";
-    const name = document.createElement("div"); name.className = "name"; name.textContent = it.model + " · קוד " + it.id.slice(0, 8).toUpperCase();
+    const name = document.createElement("div"); name.className = "name";
+    name.textContent = (it.plate ? "🚗 " + it.plate + " · " : "") + it.model + " · קוד " + it.id.slice(0, 8).toUpperCase();
     const meta = document.createElement("div"); meta.className = "meta";
-    meta.textContent = it.paid ? ("מנוי עד " + fmtDate(it.paidUntil))
-      : it.active ? ("ניסיון עד " + fmtDate(it.trialEnd)) : "פג תוקף";
-    meta.style.color = it.paid ? "var(--ok)" : it.active ? "var(--warn)" : "var(--bad)";
-    info.append(name, meta);
+    meta.textContent = it.blocked ? "חסום"
+      : it.paid ? ("מנוי עד " + fmtDate(it.paidUntil))
+      : it.active ? ("ניסיון עד " + fmtDate(it.trialEnd) + (it.pending ? " · ממתין לאישור" : ""))
+      : (it.pending ? "ניסיון הסתיים · ממתין לאישור" : "פג תוקף");
+    meta.style.color = it.blocked ? "var(--bad)" : it.paid ? "var(--ok)" : it.active ? "var(--warn)" : "var(--bad)";
+    const more = document.createElement("div"); more.className = "meta";
+    more.textContent = [it.owner, it.vin ? ("שלדה " + it.vin + (vinCount[it.vin] > 1 ? " ⚠️ מופיעה " + vinCount[it.vin] + " פעמים" : "")) : (it.plate ? "שלדה: טרם התקבלה" : "לא נרשם מספר רכב"),
+      it.ver ? "גרסה " + it.ver : "", it.seen ? "נראה " + fmtDate(it.seen) : ""].filter(Boolean).join(" · ");
+    info.append(name, meta, more);
+    const btns = document.createElement("div"); btns.style.cssText = "display:flex;flex-direction:column;gap:6px";
     const btn = document.createElement("button"); btn.className = "primary small";
-    btn.textContent = it.paid ? "הארך שנה" : "הפעל מנוי (שנה)";
+    btn.textContent = it.paid ? "הארך שנה" : "אשר והפעל (שנה)";
     btn.onclick = async () => {
       btn.disabled = true;
       try {
         const base = Math.max(now, it.paidUntil || 0);
         const until = new Date(base + 365 * 86400000);
-        await setDoc(doc(db, "licenses", it.id), { paidUntil: Timestamp.fromDate(until) }, { merge: true });
-        toast("המנוי הופעל ✓");
+        await setDoc(doc(db, "licenses", it.id), { paidUntil: Timestamp.fromDate(until), blocked: false }, { merge: true });
+        toast("הרכב אושר והמנוי הופעל ✓");
       } catch (e) { toast(friendly(e), 6000); }
       btn.disabled = false;
     };
-    card.append(info, btn); box.append(card);
+    const blk = document.createElement("button"); blk.className = "small";
+    blk.textContent = it.blocked ? "בטל חסימה" : "דחה / חסום";
+    blk.onclick = async () => {
+      if (!it.blocked && !confirm("לחסום את הרכב " + (it.plate || it.id.slice(0, 8)) + "? האפליקציה תפסיק לעבוד בו.")) return;
+      blk.disabled = true;
+      try {
+        await setDoc(doc(db, "licenses", it.id), { blocked: !it.blocked }, { merge: true });
+        toast(it.blocked ? "החסימה בוטלה" : "הרכב נחסם");
+      } catch (e) { toast(friendly(e), 6000); }
+      blk.disabled = false;
+    };
+    btns.append(btn, blk);
+    card.append(info, btns); box.append(card);
   }
 }
 $("btnPay").onclick = async () => {
