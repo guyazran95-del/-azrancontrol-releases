@@ -68,6 +68,7 @@
   .seg button.on{background:var(--accent2);color:#fff;border-color:var(--accent2);}
   .badge{display:inline-block;background:#11351f;color:var(--ok);border:1px solid #1d5e38;border-radius:20px;
     padding:3px 10px;font-size:12px;margin-top:8px;}
+[hidden]{display:none!important}
 img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:none;object-fit:contain;background:#000;z-index:9999;border-radius:0;margin:0}
 </style>
 </head>
@@ -113,9 +114,14 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
       <div class="card" id="player" hidden>
         <h2 id="playTitle"></h2>
         <img id="playImg" class="cam" alt="" onclick="toggleFull(this)">
+        <video id="playVid" class="cam" controls playsinline hidden></video>
+        <div id="playBar" style="display:flex;align-items:center;gap:10px;margin:10px 0 0;direction:ltr">
+          <button class="btn ghost" id="playPause" onclick="togglePause()" style="width:auto;padding:8px 14px;margin:0">⏸</button>
+          <input type="range" id="playSeek" min="0" max="0" value="0" style="flex:1" oninput="seekTo(this.value)">
+        </div>
         <p class="sub" id="playMsg" style="text-align:center;margin:10px 0"></p>
-        <p class="sub" style="text-align:center;margin:0 0 10px">הקש על התמונה להגדלה למסך מלא</p>
-        <button class="btn" id="saveBtn" onclick="saveClip()">⬇️ שמור סרטון בטלפון</button>
+        <p class="sub" id="playHint" style="text-align:center;margin:0 0 10px">זו תצוגה מהירה בלי קול. הקש על התמונה להגדלה. לסרטון המלא עם קול, טען אותו:</p>
+        <button class="btn" id="saveBtn" onclick="saveClip()">🔊 טען סרטון מלא (עם קול) ושמירה</button>
         <p class="sub" id="saveMsg" style="text-align:center;margin:8px 0"></p>
         <button class="btn ghost" onclick="stopClip()">סגור</button>
       </div>
@@ -410,6 +416,11 @@ async function loadRecordings(kind){
   }catch(e){ $("#recEmpty").style.display="block"; }
 }
 function toggleFull(img){ img.classList.toggle("full"); }
+let vidUrl=null, playFrames=[], playShown=0, playPaused=false, playTotal=0;
+function togglePause(){ playPaused=!playPaused; $("#playPause").textContent = playPaused ? "▶" : "⏸"; }
+function showFrame(i){ if(playFrames[i]) $("#playImg").src="data:image/jpeg;base64,"+playFrames[i];
+  $("#playSeek").value=i; $("#playMsg").textContent=`שנייה ${i+1}`+(playTotal?` מתוך ${playTotal}`:""); }
+function seekTo(v){ playShown=Math.min(+v, Math.max(0,playFrames.length-1)); showFrame(playShown); }
 let pendingDl = null, curClip = null, savePoll = null;
 function stopSave(){ clearInterval(savePoll); savePoll=null;
   if(pendingDl){ pendingDl=null; fetch(u(`ctl`),{method:"PATCH",body:JSON.stringify({dl:null})}).catch(()=>{}); }
@@ -439,6 +450,12 @@ function saveClip(){
         const name = "AZDrive-"+clip.title.replace(/[^0-9]+/g,"-").replace(/^-|-$/g,"")+".mp4";
         const file = new File(parts, name, {type:"video/mp4"});
         stopSave();
+        // Play the real file: the browser's own player gives the seek bar, volume and full screen.
+        clearInterval(playTimer); clearInterval(playPoll); pendingReq=null;
+        const v=$("#playVid"); if(vidUrl) URL.revokeObjectURL(vidUrl);
+        vidUrl=URL.createObjectURL(file); v.src=vidUrl; v.hidden=false; v.volume=1;
+        $("#playImg").hidden=true; $("#playBar").style.display="none"; $("#playHint").hidden=true; $("#playMsg").textContent="";
+        v.play().catch(()=>{});
         // On a phone the share sheet is what offers "Save Video"; elsewhere fall back to a plain download.
         let shared=false;
         if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -457,6 +474,8 @@ function saveClip(){
   }, 1500);
 }
 function stopClip(){ clearInterval(playTimer); clearInterval(playPoll); pendingReq=null; stopSave(); $("#saveMsg").textContent="";
+  const v=$("#playVid"); v.pause(); v.removeAttribute("src"); v.load(); v.hidden=true; if(vidUrl){ URL.revokeObjectURL(vidUrl); vidUrl=null; }
+  $("#playImg").hidden=false; $("#playBar").style.display="flex"; $("#playHint").hidden=false;
   $("#playImg").classList.remove("full"); $("#player").hidden=true; }
 function playClip(path, title){
   stopClip();
@@ -465,25 +484,28 @@ function playClip(path, title){
   pendingReq = { id, path }; writeCtl();
   $("#player").hidden=false; $("#playTitle").textContent=title; $("#playImg").removeAttribute("src");
   $("#playMsg").textContent="מבקש את ההקלטה מהרכב…";
-  const frames=[]; let shown=0, n=0, total=0, state="";
+  playFrames=[]; playShown=0; playTotal=0; playPaused=false; $("#playPause").textContent="⏸";
+  $("#playSeek").max=0; $("#playSeek").value=0;
+  let n=0, state="";
   playPoll = setInterval(async ()=>{
     try{
       const m = await (await fetch(u(`rec/play`))).json();
       if(!m || m.id!==id) return;
-      state=m.state; n=m.n||0; total=m.total||0;
+      state=m.state; n=m.n||0; playTotal=m.total||0;
       if(state==="error"){ $("#playMsg").textContent="שגיאה: "+(m.msg||""); clearInterval(playPoll); return; }
-      for(let i=frames.length;i<n;i++){
+      for(let i=playFrames.length;i<n;i++){
         const f = await (await fetch(u(`rec/playf/${i}`))).json();
-        frames.push(f||"");
+        playFrames.push(f||"");
+        $("#playSeek").max=Math.max(0,playFrames.length-1);
       }
-      if(state==="ready" && frames.length>=total) clearInterval(playPoll);
+      if(state==="ready" && playFrames.length>=playTotal) clearInterval(playPoll);
     }catch(e){}
   }, 1500);
   playTimer = setInterval(()=>{
-    if(shown<frames.length){
-      if(frames[shown]) $("#playImg").src="data:image/jpeg;base64,"+frames[shown];
-      shown++; $("#playMsg").textContent=`שנייה ${shown}`+(total?` מתוך ${total}`:"")+(state!=="ready"?" · טוען…":"");
-    } else if(state==="ready" && total && shown>=total){ shown=0; }
+    if(playPaused) return;
+    if(playShown<playFrames.length){ showFrame(playShown); playShown++;
+      if(state!=="ready") $("#playMsg").textContent+=" · טוען…"; }
+    else if(state==="ready" && playTotal && playShown>=playTotal){ playShown=0; }
   }, 500);
 }
 
