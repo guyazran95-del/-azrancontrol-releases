@@ -95,6 +95,10 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
         <button class="btn ghost" style="width:auto;padding:8px 18px" onclick="carKey(3)">⌂ בית</button>
         <span class="sub" style="align-self:center">גע או גרור על המסך כדי לשלוט</span>
       </div>
+      <div style="display:flex;justify-content:center;margin:10px 0">
+        <button class="btn ghost" id="micBtn" style="width:auto;padding:10px 22px" onclick="toggleMic()">🔇 האזנה לרכב: כבויה</button>
+      </div>
+      <p class="sub" id="micMsg" style="text-align:center;margin:0 0 6px"></p>
       <p class="sub" id="camStatus" style="text-align:center;margin:10px 0"></p>
       <p class="sub" id="camDiag" style="text-align:center;margin:10px 0;font-size:12px;opacity:.75;direction:ltr"></p>
       <div class="empty" id="camEmpty">
@@ -307,8 +311,46 @@ function writeCtl(){
   const body = { watch: (camOn && !document.hidden) ? Date.now() : 0, sel: camSel };
   if(pendingReq) body.req = pendingReq;
   if(pendingDl) body.dl = pendingDl;
+  body.mic = (micOn && camOn && !document.hidden) ? Date.now() : 0;
   // PATCH (merge) so we never wipe ctl/touch that carCtl writes between heartbeats.
   fetch(u(`ctl`),{method:"PATCH",body:JSON.stringify(body)}).catch(()=>{});
+}
+/* ---------- LIVE LISTENING: one-second pieces of cabin sound, played back to back ---------- */
+let micOn = false, actx = null, micEs = null, micNext = 0, micSeq = -1, micGot = 0, micWatch = null;
+const MULAW = (()=>{ const t=new Float32Array(256); for(let i=0;i<256;i++){ const u=~i&0xff, sign=u&0x80, exp=(u>>4)&7, man=u&15;
+  let v=((man<<3)+132)<<exp; v-=132; t[i]=(sign?-v:v)/32768; } return t; })();
+function micPiece(d){
+  if(!actx || !d || !d.d || d.s===micSeq) return;
+  micSeq=d.s; micGot=Date.now();
+  const bin=atob(d.d), buf=actx.createBuffer(1, bin.length, d.r||8000), ch=buf.getChannelData(0);
+  for(let i=0;i<bin.length;i++) ch[i]=MULAW[bin.charCodeAt(i)];
+  const src=actx.createBufferSource(); src.buffer=buf; src.connect(actx.destination);
+  const now=actx.currentTime;
+  if(micNext < now+0.05 || micNext > now+4) micNext = now+0.25;   // first piece, or we fell behind / ran ahead
+  src.start(micNext); micNext += buf.duration;
+  $("#micMsg").textContent="";
+}
+function toggleMic(){
+  micOn = !micOn;
+  $("#micBtn").textContent = micOn ? "🔊 האזנה לרכב: פועלת" : "🔇 האזנה לרכב: כבויה";
+  $("#micBtn").classList.toggle("ghost", !micOn);
+  if(micOn){
+    // The sound system may only be started from a tap, which is exactly where we are.
+    try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); actx.resume(); }catch(e){}
+    micNext=0; micSeq=-1; micGot=0; $("#micMsg").textContent="מתחבר למיקרופון של הרכב…";
+    if(!micEs){ micEs = sse(`cam/aud`);
+      const on = ev => { try{ micPiece(JSON.parse(ev.data).data); }catch(e){} };
+      micEs.addEventListener("put",on); micEs.addEventListener("patch",on); }
+    clearInterval(micWatch);
+    const t0=Date.now();
+    micWatch = setInterval(()=>{ if(!micOn) return;
+      if(!micGot && Date.now()-t0>12000) $("#micMsg").textContent='לא מתקבל קול. ודא שברכב מופעל "אפשר האזנה חיה מהטלפון" (לשונית רכב).';
+      else if(micGot && Date.now()-micGot>8000) $("#micMsg").textContent="הקול נקטע. ממתין לרכב…"; }, 3000);
+  } else {
+    clearInterval(micWatch); $("#micMsg").textContent="";
+    if(actx) actx.suspend().catch(()=>{});
+  }
+  writeCtl();
 }
 async function loadSources(){
   try{
