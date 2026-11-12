@@ -69,9 +69,10 @@
   .badge{display:inline-block;background:#11351f;color:var(--ok);border:1px solid #1d5e38;border-radius:20px;
     padding:3px 10px;font-size:12px;margin-top:8px;}
 .cardir{position:relative;width:100%;max-width:300px;margin:4px auto 14px;aspect-ratio:1/1;}
-  .cardir .car{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:132px;
+  .cardir .car{cursor:pointer;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:132px;
     border-radius:22px;background:linear-gradient(180deg,#2a3647,#1a2330);border:1px solid var(--line);
     display:flex;align-items:center;justify-content:center;font-size:28px;}
+  .cardir .car.on{border-color:var(--accent2);box-shadow:0 0 16px #2d6cf6cc;background:linear-gradient(180deg,#24406e,#182944);}
   .cardir .pad{position:absolute;background:var(--card);border:1px solid var(--line);color:var(--sub);
     border-radius:12px;padding:7px 6px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;
     display:flex;flex-direction:column;align-items:center;gap:2px;min-width:72px;font-family:inherit;}
@@ -105,7 +106,7 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
         <h2>📷 מצלמות הרכב</h2>
         <p class="sub">צפייה חיה במצלמות הרכב. פעיל כשהרכב דלוק, מחובר לאינטרנט, ו"מצלמות והקלטות בטלפון" מופעל באפליקציית הרכב.</p>
       </div>
-      <div class="cardir" id="camDir"><div class="car">🚗</div></div>
+      <div class="cardir" id="camDir"><div class="car" id="carHub" title="כל המצלמות">🚗</div></div>
       <div class="camextra" id="camExtra"></div>
       <div id="camWrap"></div>
       <div id="screenCtl" style="display:none;gap:8px;margin:10px 0;justify-content:center">
@@ -387,8 +388,10 @@ async function loadSources(){
     const dir=$("#camDir"), extra=$("#camExtra");
     dir.querySelectorAll(".pad").forEach(p=>p.remove());
     extra.innerHTML="";
-    const used={};
+    const used={}; let allId=null;
     (list||[]).forEach(c=>{
+      const s2=((c.label||"")+" "+(c.id||"")).toLowerCase();
+      if(/כל המצל|all/.test(s2)) allId=c.id;
       const d=camDirOf(c.label,c.id), sel=c.id===camSel;
       if(DIRMETA[d] && !used[d]){
         used[d]=1;
@@ -405,6 +408,12 @@ async function loadSources(){
         extra.appendChild(b);
       }
     });
+    const hub=$("#carHub");
+    if(hub){
+      hub.classList.toggle("on", allId!=null && camSel===allId);
+      hub.onclick = allId!=null ? (()=>selectCam(allId)) : null;
+      hub.style.cursor = allId!=null ? "pointer" : "default";
+    }
   }catch(e){}
 }
 /* Plain-words connection check, shown under the picture, so a screenshot tells what is missing. */
@@ -414,7 +423,7 @@ async function camDiag(){
   const info=await get("info"), list=await get("cam/list"), st=await get("cam/status"), fr=await get("cam/frame/t"), hb=await get("cam/hb");
   let w="?"; try{ const r=await fetch(u(`ctl/ping`),{method:"PUT",body:JSON.stringify(Date.now())}); w=r.status; }catch(e){ w="net"; }
   out.push(`read ${list.s} · write ${w}`);
-  out.push(`car app ${info.j&&info.j.app||"-"} · sources ${list.j?list.j.length:0}`);
+  out.push(`car app ${info.j&&info.j.app||"-"}${info.j&&info.j.appCode?"/"+info.j.appCode:""} · sources ${list.j?list.j.length:0}`);
   out.push(`last frame ${fr.j? Math.round((Date.now()-fr.j)/1000)+"s ago":"none"} · ${st.j&&st.j.msg||"no status"}`);
   // Car heartbeat: compare server time to server time, so clock differences don't matter.
   let now=Date.now(); try{ await fetch(u(`ctl/now`),{method:"PUT",body:'{".sv":"timestamp"}'}); const n=await get("ctl/now"); if(n.j) now=n.j; }catch(e){}
