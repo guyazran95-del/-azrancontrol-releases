@@ -88,7 +88,15 @@
   #camWrap.ctl{touch-action:none;}
   #camWrap.ctl img{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none;}
   .cam{width:100%;border-radius:18px;background:#05070b;aspect-ratio:16/9;object-fit:contain;display:block;
-    border:1px solid var(--line2);box-shadow:0 20px 50px -26px #000, 0 0 0 4px #0b1119;}
+    border:1px solid var(--line2);box-shadow:0 20px 50px -26px #000, 0 0 0 4px #0b1119;transition:filter .3s;}
+  .cam.stale{filter:grayscale(.8) brightness(.38);}
+  #camWrap{position:relative;}
+  #camStale{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+    gap:8px;text-align:center;padding:16px;border-radius:18px;pointer-events:none;}
+  #camStale.on{display:flex;}
+  #camStale .dot{width:12px;height:12px;border-radius:50%;background:#ff5a5f;box-shadow:0 0 14px #ff5a5f;}
+  #camStale .t1{font-weight:700;font-size:17px;color:#fff;}
+  #camStale .t2{font-size:14px;color:#c6d2e2;max-width:260px;}
 
   /* segmented control */
   .seg{display:flex;gap:4px;margin-bottom:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;}
@@ -532,13 +540,25 @@ function startCamera(){
       let img = $("#camImg");
       if(!img){ img=document.createElement("img"); img.id="camImg"; img.className="cam"; $("#camWrap").appendChild(img); }
       img.src = "data:image/jpeg;base64," + d.d;
+      img.classList.remove("stale"); const sv=$("#camStale"); if(sv) sv.classList.remove("on");
     }}catch(e){} };
   es.addEventListener("put",on); es.addEventListener("patch",on);
   const st = sse(`cam/status`);
   const onSt = ev => { try{ const d=JSON.parse(ev.data).data; if(d&&d.msg) $("#camStatus").textContent=d.msg; }catch(e){} };
   st.addEventListener("put",onSt); st.addEventListener("patch",onSt);
   writeCtl(); setInterval(writeCtl, 3000);
-  setInterval(()=>{ if(lastFrameAt && Date.now()-lastFrameAt>15000) $("#camStatus").textContent="אין תמונה חדשה מהרכב (הרכב כבוי או בלי אינטרנט?)"; }, 5000);
+  // Stale guard: if no fresh frame for 12s, dim the frozen image and show a clear "not live" overlay,
+  // so an old frame is never mistaken for a live feed.
+  if(!$("#camStale")){ const o=document.createElement("div"); o.id="camStale";
+    o.innerHTML='<div class="dot"></div><div class="t1">אין שידור חי</div><div class="t2">זו תמונה קפואה. ייתכן שהרכב ישן או לא מחובר לאינטרנט.</div>';
+    $("#camWrap").appendChild(o); }
+  setInterval(()=>{
+    const img=$("#camImg"), sv=$("#camStale"); if(!sv) return;
+    const stale = lastFrameAt && Date.now()-lastFrameAt>12000;
+    if(img) img.classList.toggle("stale", !!stale);
+    sv.classList.toggle("on", !!stale);
+    if(stale) $("#camStatus").textContent="אין תמונה חדשה מהרכב (הרכב כבוי או בלי אינטרנט?)";
+  }, 3000);
 }
 
 /* ---------- RECORDINGS: list from the car, played back as one frame per second ---------- */
