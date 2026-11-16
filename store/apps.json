@@ -1,0 +1,60 @@
+{
+  "apps": [
+    {
+      "name": "Gboard",
+      "package": "com.google.android.inputmethod.latin",
+      "versionCode": 175517618,
+      "version": "16.4.3",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Gboard-16.4.3.apk",
+      "description": "מקלדת Google — הקלדה בעברית, הקלדה קולית והחלקה."
+    },
+    {
+      "name": "microG Services",
+      "package": "app.revanced.android.gms",
+      "versionCode": 240913008,
+      "version": "0.3.1.4.240913",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/microG-Services-0.3.1.4.240913.apk",
+      "description": "רכיב עזר שנדרש להתחברות לחשבון ב-YouTube ReVanced."
+    },
+    {
+      "name": "Telegram",
+      "package": "org.telegram.messenger.web",
+      "versionCode": 63419,
+      "version": "12.2.10",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Telegram-12.2.10.apk",
+      "description": "אפליקציית המסרים טלגרם."
+    },
+    {
+      "name": "Waze",
+      "package": "com.waze",
+      "versionCode": 1030454,
+      "version": "4.102.0.2",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Waze-4.102.0.2.apk",
+      "description": "ניווט עם דיווחי תנועה בזמן אמת."
+    },
+    {
+      "name": "XEQ Equalizer",
+      "package": "com.frack.xeq",
+      "versionCode": 201,
+      "version": "25.16.0",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/XEQ-Equalizer-25.16.0.apk",
+      "description": "אקולייזר לשיפור איכות הסאונד ברכב."
+    },
+    {
+      "name": "Aptoide",
+      "package": "cm.aptoide.pt",
+      "versionCode": 12060,
+      "version": "9.22.5.3",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Aptoide-9.22.5.3.apk",
+      "description": "חנות אפליקציות חלופית."
+    },
+    {
+      "name": "Televizo",
+      "package": "com.ottplay.ottplay",
+      "versionCode": 350,
+      "version": "1.9.4.0",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Televizo-1.9.4.0.apk",
+      "description": "נגן IPTV לצפייה בערוצים."
+    }
+  ]
+}
