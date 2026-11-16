@@ -55,6 +55,14 @@
       "version": "1.9.4.0",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Televizo-1.9.4.0.apk",
       "description": "נגן IPTV לצפייה בערוצים."
+    },
+    {
+      "name": "Google",
+      "package": "com.google.android.googlequicksearchbox",
+      "versionCode": 301657242,
+      "version": "16.50.55",
+      "url": "https://github.com/guyazran95-del/-azrancontrol-releases/releases/download/store/Google-16.50.55.apk",
+      "description": "אפליקציית Google — חיפוש ועוזר קולי."
     }
   ]
 }
