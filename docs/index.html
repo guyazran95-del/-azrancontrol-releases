@@ -53,6 +53,17 @@
   .tabbar button.on{color:var(--accent);}
   .view{display:none;height:100%;}
   .view.on{display:block;}
+  /* TV remote */
+  .remote{max-width:300px;margin:4px auto 0;}
+  .rrow{display:flex;gap:10px;justify-content:center;margin:11px 0;}
+  .rkey{flex:1;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:14px;
+    padding:16px 8px;font-size:15px;font-weight:600;font-family:var(--heb);cursor:pointer;transition:background .1s;}
+  .rkey:active{background:#20406a;color:#fff;}
+  .rkey.big{font-size:18px;padding:20px 8px;}
+  .rkey.accent{background:linear-gradient(180deg,#20406a,#17304f);color:#fff;border:0;}
+  .dpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:13px auto;}
+  .dpad .rkey{padding:18px 0;font-size:18px;}
+  .dpad .sp{visibility:hidden;}
   .pad{padding:18px;}
 
   .card{background:linear-gradient(180deg,rgba(255,255,255,.015),transparent),var(--card);
@@ -215,11 +226,55 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
     </div>
   </section>
 
+  <!-- REMOTE -->
+  <section class="view" id="v-remote">
+    <div class="pad">
+      <div class="seg" id="remoteApps">
+        <button class="on" data-app="tv">📺 טלוויזיה</button>
+        <button data-app="yt">▶️ יוטיוב</button>
+      </div>
+      <p class="sub" id="remoteHint" style="text-align:center;margin-bottom:6px">שלט לטלוויזיה. פתח את Televizo ברכב, ולחץ ערוץ ▲/▼ או חיצים.</p>
+      <div class="remote">
+        <div class="rrow" data-mode="tv">
+          <button class="rkey big accent" onclick="carKey(166)">ערוץ ▲</button>
+          <button class="rkey big accent" onclick="carKey(167)">ערוץ ▼</button>
+        </div>
+        <div class="rrow" data-mode="yt" style="display:none">
+          <button class="rkey" onclick="carKey(88)">⏮ הקודם</button>
+          <button class="rkey" onclick="carKey(87)">⏭ הבא</button>
+        </div>
+        <div class="dpad">
+          <button class="rkey sp"></button>
+          <button class="rkey" onclick="carKey(19)">▲</button>
+          <button class="rkey sp"></button>
+          <button class="rkey" onclick="carKey(21)">◀</button>
+          <button class="rkey accent" onclick="carKey(23)">OK</button>
+          <button class="rkey" onclick="carKey(22)">▶</button>
+          <button class="rkey sp"></button>
+          <button class="rkey" onclick="carKey(20)">▼</button>
+          <button class="rkey sp"></button>
+        </div>
+        <div class="rrow">
+          <button class="rkey accent" onclick="carKey(85)">⏯ נגן / השהה</button>
+        </div>
+        <div class="rrow">
+          <button class="rkey" onclick="carKey(25)">🔉 −</button>
+          <button class="rkey" onclick="carKey(24)">🔊 +</button>
+        </div>
+        <div class="rrow">
+          <button class="rkey" onclick="carKey(4)">‹ חזור</button>
+          <button class="rkey" onclick="carKey(3)">⌂ בית</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <nav class="tabbar">
   <button class="on" data-tab="cam"><span class="ic">📷</span>מצלמות</button>
   <button data-tab="rec"><span class="ic">⏺️</span>הקלטות</button>
+  <button data-tab="remote"><span class="ic">📺</span>שלט</button>
 </nav>
 
 <!-- PAIRING -->
@@ -348,6 +403,16 @@ $$(".tabbar button").forEach(b => b.onclick = () => {
   b.classList.add("on");
   $("#v-" + b.dataset.tab).classList.add("on");
   if (b.dataset.tab === "route"){ initMap(); setTimeout(()=>{ if(map) map.invalidateSize(); }, 200); }
+});
+
+// remote: pick which app the remote is tuned to (TV / YouTube)
+$$("#remoteApps button").forEach(b => b.onclick = () => {
+  $$("#remoteApps button").forEach(x => x.classList.remove("on")); b.classList.add("on");
+  const app = b.dataset.app;
+  $$('[data-mode]').forEach(el => { el.style.display = el.dataset.mode === app ? "flex" : "none"; });
+  $("#remoteHint").textContent = app === "tv"
+    ? "שלט לטלוויזיה. פתח את Televizo ברכב, ולחץ ערוץ ▲/▼ או חיצים."
+    : "שלט ליוטיוב. פתח יוטיוב ברכב, ולחץ הקודם/הבא, נגן/השהה או חיצים ו-OK.";
 });
 
 // recordings segment
