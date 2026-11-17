@@ -1,14 +1,6 @@
 {
   "apps": [
     {
-      "name": "Gboard",
-      "package": "com.google.android.inputmethod.latin",
-      "versionCode": 175517618,
-      "version": "16.4.3",
-      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Gboard-16.4.3.apk",
-      "description": "מקלדת Google — הקלדה בעברית, הקלדה קולית והחלקה."
-    },
-    {
       "name": "microG Services",
       "package": "app.revanced.android.gms",
       "versionCode": 240913008,
@@ -55,14 +47,6 @@
       "version": "1.9.4.0",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Televizo-1.9.4.0.apk",
       "description": "נגן IPTV לצפייה בערוצים."
-    },
-    {
-      "name": "Google",
-      "package": "com.google.android.googlequicksearchbox",
-      "versionCode": 301657242,
-      "version": "16.50.55",
-      "url": "https://github.com/guyazran95-del/-azrancontrol-releases/releases/download/store/Google-16.50.55.apk",
-      "description": "אפליקציית Google — חיפוש ועוזר קולי."
     },
     {
       "name": "Magic Manager",
