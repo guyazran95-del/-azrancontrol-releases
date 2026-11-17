@@ -89,6 +89,23 @@
       "url": "https://github.com/guyazran95-del/-azrancontrol-releases/releases/download/store/Google-16.50.55.apk",
       "description": "אפליקציית Google — חיפוש ועוזר קולי.",
       "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.google.android.googlequicksearchbox.png"
+    },
+    {
+      "name": "MediaBox HD",
+      "package": "com.box.iceage.plus",
+      "versionCode": 1076,
+      "version": "1.0.76",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/MediaBox-HD-1.0.76.apk",
+      "description": "צפייה בסרטים וסדרות."
+    },
+    {
+      "name": "ReVanced Manager Plus",
+      "package": "com.revanced.net.revancedmanager",
+      "versionCode": 385,
+      "version": "3.6.25",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/ReVanced-Manager-Plus-3.6.25.apk",
+      "description": "חנות יוטיובים ומיקרו ג'י.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.revanced.net.revancedmanager.png"
     }
   ]
 }
