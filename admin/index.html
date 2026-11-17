@@ -384,7 +384,8 @@ function renderSubs(docs) {
     const created = v.createdAt?.toMillis ? v.createdAt.toMillis()
                    : (v.lastSeen?.toMillis ? v.lastSeen.toMillis() : now);
     const paidUntil = v.paidUntil?.toMillis ? v.paidUntil.toMillis() : 0;
-    const trialEnd = created + 7 * 86400000;
+    // cars registered before the approval cutover keep their automatic week; newer ones open only when approved
+    const trialEnd = created < Date.parse("2026-11-16T00:00:00Z") ? created + 7 * 86400000 : 0;
     const blocked = v.blocked === true;
     const paid = paidUntil > now && !blocked;
     const active = !blocked && (paid || now < trialEnd);
@@ -412,7 +413,10 @@ function renderSubs(docs) {
       : it.gift ? ("שבוע ניסיון שאישרת · עד " + fmtDate(it.paidUntil))
       : it.paid ? ("מנוי עד " + fmtDate(it.paidUntil))
       : it.active ? ("ניסיון עד " + fmtDate(it.trialEnd) + (it.pending ? " · ממתין לאישור" : ""))
-      : (it.pending ? "ניסיון הסתיים · ממתין לאישור" : "פג תוקף");
+      : !it.pending ? "פג תוקף"
+      : it.paidUntil ? "התקופה הסתיימה · ממתין לתשלום"
+      : it.trialEnd ? "ניסיון הסתיים · ממתין לאישור"
+      : "🆕 ביקש שבוע ניסיון · ממתין לאישור שלך";
     meta.style.color = it.blocked ? "var(--bad)" : it.gift ? "var(--warn)" : it.paid ? "var(--ok)" : it.active ? "var(--warn)" : "var(--bad)";
     const more = document.createElement("div"); more.className = "meta";
     more.textContent = [it.owner, it.vin ? ("שלדה " + it.vin + (vinCount[it.vin] > 1 ? " ⚠️ מופיעה " + vinCount[it.vin] + " פעמים" : "")) : (it.plate ? "שלדה: טרם התקבלה" : "לא נרשם מספר רכב"),
