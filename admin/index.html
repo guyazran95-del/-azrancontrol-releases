@@ -389,7 +389,8 @@ function renderSubs(docs) {
     const paid = paidUntil > now && !blocked;
     const active = !blocked && (paid || now < trialEnd);
     const pending = !!v.plate && !paid && !blocked;
-    return { id: dc.id, model: v.model || "רכב", ver: v.version || "", paid, active, paidUntil, trialEnd, blocked, pending,
+    const gift = paid && v.trialGrant === true;   // a free week the owner granted, not a paid subscription
+    return { id: dc.id, model: v.model || "רכב", ver: v.version || "", paid, active, paidUntil, trialEnd, blocked, pending, gift,
              plate: v.plate || "", vin: v.vin || "", owner: v.ownerName || "",
              seen: v.lastSeen?.toMillis ? v.lastSeen.toMillis() : 0 };
   }).sort((a, b) => (b.pending - a.pending) || (a.active - b.active) || (a.paid - b.paid));
@@ -408,23 +409,24 @@ function renderSubs(docs) {
     name.textContent = (it.plate ? "🚗 " + it.plate + " · " : "") + it.model + " · קוד " + it.id.slice(0, 8).toUpperCase();
     const meta = document.createElement("div"); meta.className = "meta";
     meta.textContent = it.blocked ? "חסום"
+      : it.gift ? ("שבוע ניסיון שאישרת · עד " + fmtDate(it.paidUntil))
       : it.paid ? ("מנוי עד " + fmtDate(it.paidUntil))
       : it.active ? ("ניסיון עד " + fmtDate(it.trialEnd) + (it.pending ? " · ממתין לאישור" : ""))
       : (it.pending ? "ניסיון הסתיים · ממתין לאישור" : "פג תוקף");
-    meta.style.color = it.blocked ? "var(--bad)" : it.paid ? "var(--ok)" : it.active ? "var(--warn)" : "var(--bad)";
+    meta.style.color = it.blocked ? "var(--bad)" : it.gift ? "var(--warn)" : it.paid ? "var(--ok)" : it.active ? "var(--warn)" : "var(--bad)";
     const more = document.createElement("div"); more.className = "meta";
     more.textContent = [it.owner, it.vin ? ("שלדה " + it.vin + (vinCount[it.vin] > 1 ? " ⚠️ מופיעה " + vinCount[it.vin] + " פעמים" : "")) : (it.plate ? "שלדה: טרם התקבלה" : "לא נרשם מספר רכב"),
       it.ver ? "גרסה " + it.ver : "", it.seen ? "נראה " + fmtDate(it.seen) : ""].filter(Boolean).join(" · ");
     info.append(name, meta, more);
     const btns = document.createElement("div"); btns.style.cssText = "display:flex;flex-direction:column;gap:6px";
     const btn = document.createElement("button"); btn.className = "primary small";
-    btn.textContent = it.paid ? "הארך שנה" : "אשר והפעל (שנה)";
+    btn.textContent = (it.paid && !it.gift) ? "הארך שנה" : "אשר והפעל (שנה)";
     btn.onclick = async () => {
       btn.disabled = true;
       try {
-        const base = Math.max(now, it.paidUntil || 0);
+        const base = it.gift ? now : Math.max(now, it.paidUntil || 0);
         const until = new Date(base + 365 * 86400000);
-        await setDoc(doc(db, "licenses", it.id), { paidUntil: Timestamp.fromDate(until), blocked: false }, { merge: true });
+        await setDoc(doc(db, "licenses", it.id), { paidUntil: Timestamp.fromDate(until), blocked: false, trialGrant: false }, { merge: true });
         toast("הרכב אושר והמנוי הופעל ✓");
       } catch (e) { toast(friendly(e), 6000); }
       btn.disabled = false;
@@ -440,7 +442,20 @@ function renderSubs(docs) {
       } catch (e) { toast(friendly(e), 6000); }
       blk.disabled = false;
     };
-    btns.append(btn, blk);
+    // A free week granted by the owner. Not offered on a real paid subscription, so it can never shorten one.
+    const wk = document.createElement("button"); wk.className = "small";
+    wk.textContent = it.gift ? "הוסף עוד שבוע ניסיון" : "אשר שבוע ניסיון חינם";
+    wk.onclick = async () => {
+      wk.disabled = true;
+      try {
+        const base = it.gift ? Math.max(now, it.paidUntil || 0) : now;
+        const until = new Date(base + 7 * 86400000);
+        await setDoc(doc(db, "licenses", it.id), { paidUntil: Timestamp.fromDate(until), blocked: false, trialGrant: true }, { merge: true });
+        toast("אושר שבוע ניסיון חינם עד " + fmtDate(until.getTime()) + " ✓");
+      } catch (e) { toast(friendly(e), 6000); }
+      wk.disabled = false;
+    };
+    if (it.paid && !it.gift) btns.append(btn, blk); else btns.append(btn, wk, blk);
     card.append(info, btns); box.append(card);
   }
 }
