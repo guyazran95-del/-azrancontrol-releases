@@ -71,6 +71,14 @@
       "version": "2.8.03",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Magic-Sentry-2.8.03.apk",
       "description": "📷 מצלמות — הפעלת המצלמות המקליטות ברכב. להתקין יחד עם Magic Manager."
+    },
+    {
+      "name": "Google",
+      "package": "com.google.android.googlequicksearchbox",
+      "versionCode": 301657238,
+      "version": "16.50.55",
+      "url": "https://github.com/guyazran95-del/-azrancontrol-releases/releases/download/store/Google-16.50.55.apk",
+      "description": "אפליקציית Google — חיפוש ועוזר קולי."
     }
   ]
 }
