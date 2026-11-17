@@ -1,6 +1,14 @@
 {
   "apps": [
     {
+      "name": "Gboard",
+      "package": "com.google.android.inputmethod.latin",
+      "versionCode": 176050037,
+      "version": "18.5.10",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Gboard-18.5.10.apk",
+      "description": "מקלדת Google — הקלדה בעברית, הקלדה קולית והחלקה."
+    },
+    {
       "name": "microG Services",
       "package": "app.revanced.android.gms",
       "versionCode": 240913008,
