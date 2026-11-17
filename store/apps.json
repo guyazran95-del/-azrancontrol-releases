@@ -6,7 +6,8 @@
       "versionCode": 176050037,
       "version": "18.5.10",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Gboard-18.5.10.apk",
-      "description": "מקלדת Google — הקלדה בעברית, הקלדה קולית והחלקה."
+      "description": "מקלדת Google — הקלדה בעברית, הקלדה קולית והחלקה.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.google.android.inputmethod.latin.png"
     },
     {
       "name": "microG Services",
@@ -14,7 +15,8 @@
       "versionCode": 240913008,
       "version": "0.3.1.4.240913",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/microG-Services-0.3.1.4.240913.apk",
-      "description": "רכיב עזר שנדרש להתחברות לחשבון ב-YouTube ReVanced."
+      "description": "רכיב עזר שנדרש להתחברות לחשבון ב-YouTube ReVanced.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/app.revanced.android.gms.png"
     },
     {
       "name": "Telegram",
@@ -22,7 +24,8 @@
       "versionCode": 63419,
       "version": "12.2.10",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Telegram-12.2.10.apk",
-      "description": "אפליקציית המסרים טלגרם."
+      "description": "אפליקציית המסרים טלגרם.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/org.telegram.messenger.web.png"
     },
     {
       "name": "Waze",
@@ -30,7 +33,8 @@
       "versionCode": 1030454,
       "version": "4.102.0.2",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Waze-4.102.0.2.apk",
-      "description": "ניווט עם דיווחי תנועה בזמן אמת."
+      "description": "ניווט עם דיווחי תנועה בזמן אמת.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.waze.png"
     },
     {
       "name": "XEQ Equalizer",
@@ -38,7 +42,8 @@
       "versionCode": 201,
       "version": "25.16.0",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/XEQ-Equalizer-25.16.0.apk",
-      "description": "אקולייזר לשיפור איכות הסאונד ברכב."
+      "description": "אקולייזר לשיפור איכות הסאונד ברכב.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.frack.xeq.png"
     },
     {
       "name": "Aptoide",
@@ -46,7 +51,8 @@
       "versionCode": 12060,
       "version": "9.22.5.3",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Aptoide-9.22.5.3.apk",
-      "description": "חנות אפליקציות חלופית."
+      "description": "חנות אפליקציות חלופית.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/cm.aptoide.pt.png"
     },
     {
       "name": "Televizo",
@@ -54,7 +60,8 @@
       "versionCode": 350,
       "version": "1.9.4.0",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Televizo-1.9.4.0.apk",
-      "description": "נגן IPTV לצפייה בערוצים."
+      "description": "נגן IPTV לצפייה בערוצים.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.ottplay.ottplay.png"
     },
     {
       "name": "Magic Manager",
@@ -78,7 +85,8 @@
       "versionCode": 301657238,
       "version": "16.50.55",
       "url": "https://github.com/guyazran95-del/-azrancontrol-releases/releases/download/store/Google-16.50.55.apk",
-      "description": "אפליקציית Google — חיפוש ועוזר קולי."
+      "description": "אפליקציית Google — חיפוש ועוזר קולי.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.google.android.googlequicksearchbox.png"
     }
   ]
 }
