@@ -64,6 +64,8 @@
   .dpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:13px auto;}
   .dpad .rkey{padding:18px 0;font-size:18px;}
   .dpad .sp{visibility:hidden;}
+  .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:260px;margin:10px auto 0;}
+  .numpad .rkey{padding:16px 0;font-size:20px;}
   .pad{padding:18px;}
 
   .card{background:linear-gradient(180deg,rgba(255,255,255,.015),transparent),var(--card);
@@ -239,6 +241,23 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
           <button class="rkey big accent" onclick="carKey(166)">ערוץ ▲</button>
           <button class="rkey big accent" onclick="carKey(167)">ערוץ ▼</button>
         </div>
+        <div data-mode="tv">
+          <button class="rkey" style="width:100%" onclick="toggleNumpad()" id="numpadToggle">🔢 מספרי ערוץ</button>
+          <div class="numpad" id="numpad" style="display:none">
+            <button class="rkey" onclick="carKey(8)">1</button>
+            <button class="rkey" onclick="carKey(9)">2</button>
+            <button class="rkey" onclick="carKey(10)">3</button>
+            <button class="rkey" onclick="carKey(11)">4</button>
+            <button class="rkey" onclick="carKey(12)">5</button>
+            <button class="rkey" onclick="carKey(13)">6</button>
+            <button class="rkey" onclick="carKey(14)">7</button>
+            <button class="rkey" onclick="carKey(15)">8</button>
+            <button class="rkey" onclick="carKey(16)">9</button>
+            <button class="rkey" onclick="carKey(67)">⌫</button>
+            <button class="rkey" onclick="carKey(7)">0</button>
+            <button class="rkey accent" onclick="carKey(66)">אישור</button>
+          </div>
+        </div>
         <div class="rrow" data-mode="yt" style="display:none">
           <button class="rkey" onclick="carKey(88)">⏮ הקודם</button>
           <button class="rkey" onclick="carKey(87)">⏭ הבא</button>
@@ -409,7 +428,7 @@ $$(".tabbar button").forEach(b => b.onclick = () => {
 $$("#remoteApps button").forEach(b => b.onclick = () => {
   $$("#remoteApps button").forEach(x => x.classList.remove("on")); b.classList.add("on");
   const app = b.dataset.app;
-  $$('[data-mode]').forEach(el => { el.style.display = el.dataset.mode === app ? "flex" : "none"; });
+  $$('[data-mode]').forEach(el => { el.style.display = el.dataset.mode === app ? (el.classList.contains("rrow") ? "flex" : "block") : "none"; });
   $("#remoteHint").textContent = app === "tv"
     ? "שלט לטלוויזיה. פתח את Televizo ברכב, ולחץ ערוץ ▲/▼ או חיצים."
     : "שלט ליוטיוב. פתח יוטיוב ברכב, ולחץ הקודם/הבא, נגן/השהה או חיצים ו-OK.";
@@ -560,6 +579,7 @@ async function camDiag(){
 function syncScreenMode(){ const on = camSel==="screen"; $("#camWrap").classList.toggle("ctl", on); $("#screenCtl").style.display = on ? "flex" : "none"; }
 function carCtl(body){ if(CODE) fetch(u(`ctl/touch`),{method:"PUT",body:JSON.stringify(Object.assign({id:Math.random().toString(36).slice(2)},body))}).catch(()=>{}); }
 function carKey(k){ carCtl({type:"key",key:k}); }
+function toggleNumpad(){ const n=$("#numpad"); if(n) n.style.display = n.style.display==="none" ? "grid" : "none"; }
 // Map a pointer position on the <img> (object-fit:contain) to fractional image coords 0..1.
 function imgFrac(img, clientX, clientY){
   const r = img.getBoundingClientRect();
