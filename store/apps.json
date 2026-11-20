@@ -10,6 +10,13 @@
       "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.google.android.inputmethod.latin.png"
     },
     {
+      "name": "Gboard — Sealion 5 / C-Lion 5 (64-bit)",
+      "version": "18.5.10",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/Gboard-18.5.10-arm64.apk",
+      "description": "מקלדת Google לרכבי 64-ביט בלבד (Sealion 5 / C-Lion 5). התקן את זה אם ה-Gboard הרגיל מראה שגיאת 'לא מתאימה למעבד של הרכב (ABI)'.",
+      "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.google.android.inputmethod.latin.png"
+    },
+    {
       "name": "microG Services",
       "package": "app.revanced.android.gms",
       "versionCode": 240913008,
