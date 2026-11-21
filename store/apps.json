@@ -114,6 +114,14 @@
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/ReVanced-Manager-Plus-3.6.25.apk",
       "description": "חנות יוטיובים ומיקרו ג'י.",
       "icon": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/icons/com.revanced.net.revancedmanager.png"
+    },
+    {
+      "name": "Drama Live — ערוצי טלוויזיה (64-bit)",
+      "package": "com.sneig.livedrama",
+      "versionCode": 178,
+      "version": "13.0.2",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/DramaLive-13.0.2-arm64.apk",
+      "description": "נגן ערוצי טלוויזיה / IPTV — מנגן רשימות M3U/M3U8. גרסת 64-ביט לרכבי Sealion 5 / C-Lion 5."
     }
   ]
 }
