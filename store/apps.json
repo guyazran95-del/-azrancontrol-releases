@@ -122,6 +122,15 @@
       "version": "13.0.2",
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/DramaLive-13.0.2-arm64.apk",
       "description": "נגן ערוצי טלוויזיה / IPTV — מנגן רשימות M3U/M3U8. גרסת 64-ביט לרכבי Sealion 5 / C-Lion 5."
+    },
+    {
+      "name": "מנוע קול עברי — Google TTS (לעוזרת הקולית)",
+      "package": "com.google.android.tts",
+      "versionCode": 210610883,
+      "version": "2025.12.22",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/GoogleTTS-SpeechServices.apk",
+      "description": "מנוע הקול של גוגל — נדרש כדי שהעוזרת הקולית תדבר בעברית בקול. עובד על 32 ו-64 ביט. אחרי התקנה: הגדרות הרכב ← נגישות/שפה ← פלט טקסט לדיבור (Text-to-speech) ← בחר 'Speech Services by Google' והורד את השפה עברית.",
+      "icon": null
     }
   ]
 }
