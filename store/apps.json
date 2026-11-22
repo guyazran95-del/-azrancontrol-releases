@@ -131,6 +131,22 @@
       "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/GoogleTTS-SpeechServices.apk",
       "description": "מנוע הקול של גוגל — נדרש כדי שהעוזרת הקולית תדבר בעברית בקול. עובד על 32 ו-64 ביט. אחרי התקנה: הגדרות הרכב ← נגישות/שפה ← פלט טקסט לדיבור (Text-to-speech) ← בחר 'Speech Services by Google' והורד את השפה עברית.",
       "icon": null
+    },
+    {
+      "name": "YouTube Premium",
+      "versionCode": 200343,
+      "version": "20.03.43",
+      "url": "https://github.com/guyazran95-del/-azrancontrol-releases/releases/download/store/Youtube_premium.apk",
+      "description": "יוטיוב פרימיום — צפייה בלי פרסומות, ניגון ברקע, ו-Picture-in-Picture. מותאם לרכב.",
+      "icon": null
+    },
+    {
+      "name": "YouTube ReVanced",
+      "versionCode": 200343,
+      "version": "ReVanced",
+      "url": "https://github.com/guyazran95-del/-azrancontrol-releases/releases/download/store/default.apk",
+      "description": "יוטיוב ReVanced — גרסה מתוקנת ללא פרסומות עם תוספות. מותאם לרכב.",
+      "icon": null
     }
   ]
 }
