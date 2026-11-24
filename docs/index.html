@@ -53,6 +53,8 @@
   .tabbar button.on{color:var(--accent);}
   .view{display:none;height:100%;}
   .view.on{display:block;}
+  .profBtn{display:block;width:100%;padding:15px;margin:7px 0;font-size:18px;font-weight:600;border-radius:12px;border:1px solid var(--line);background:var(--card);color:#e8eef7;}
+  .profBtn:active{background:var(--line);}
   /* TV remote */
   .remote{max-width:300px;margin:4px auto 0;}
   .rrow{display:flex;gap:10px;justify-content:center;margin:11px 0;}
@@ -276,10 +278,20 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
 
 </main>
 
+  <section class="view" id="v-profiles">
+    <div class="card">
+      <h2>👤 פרופיל נהג</h2>
+      <p id="profHint" style="color:var(--sub);font-size:14px;margin:.3em 0 1em">בחר פרופיל — הרכב יחיל אותו עכשיו, גם בדרך אליו.</p>
+      <div id="profList"></div>
+      <p id="profStatus" style="color:var(--sub);font-size:14px;margin-top:1em"></p>
+    </div>
+  </section>
+
 <nav class="tabbar">
   <button class="on" data-tab="cam"><span class="ic">📷</span>מצלמות</button>
   <button data-tab="rec"><span class="ic">⏺️</span>הקלטות</button>
   <button data-tab="remote"><span class="ic">📺</span>שלט</button>
+  <button data-tab="profiles"><span class="ic">👤</span>פרופיל</button>
 </nav>
 
 <!-- PAIRING -->
@@ -408,7 +420,34 @@ $$(".tabbar button").forEach(b => b.onclick = () => {
   b.classList.add("on");
   $("#v-" + b.dataset.tab).classList.add("on");
   if (b.dataset.tab === "route"){ initMap(); setTimeout(()=>{ if(map) map.invalidateSize(); }, 200); }
+  if (b.dataset.tab === "profiles") loadProfiles();
 });
+
+// ---- Driver profiles: read the car's list, send a pick, wait for the car to confirm ----
+async function loadProfiles(){
+  const box = $("#profList"), hint = $("#profHint"), st = $("#profStatus"); st.textContent = "";
+  box.innerHTML = "טוען…";
+  try{
+    const r = await fetch(u("profiles")); const list = r.ok ? await r.json() : null;
+    if(!Array.isArray(list) || !list.length){ box.innerHTML = ""; hint.textContent = "לא נמצאו פרופילים ברכב. צור פרופיל באפליקציה שברכב."; return; }
+    hint.textContent = "בחר פרופיל — הרכב יחיל אותו עכשיו.";
+    box.innerHTML = "";
+    list.forEach(p => { const b = document.createElement("button"); b.className = "profBtn"; b.textContent = p.name || p.id; b.onclick = () => pickProfile(p.id, p.name); box.appendChild(b); });
+  }catch(e){ box.innerHTML = "שגיאה בטעינה"; }
+}
+async function pickProfile(id, name){
+  const st = $("#profStatus"); st.textContent = "שולח לרכב…";
+  try{
+    await fetch(u("profileResult"), { method:"DELETE" }).catch(()=>{});   // clear any old confirmation
+    await fetch(u("ctl/profile"), { method:"PUT", body: JSON.stringify({ id: id, ts: Date.now() }) });
+    for(let i=0;i<12;i++){
+      await new Promise(r=>setTimeout(r,1000));
+      const r = await fetch(u("profileResult")); const j = r.ok ? await r.json() : null;
+      if(j && j.id === id){ st.textContent = j.ok ? ("✓ הוחל ברכב: " + (j.name||name)) : ("✗ " + (j.msg||"נכשל")); return; }
+    }
+    st.textContent = "נשלח ✓ (אם הרכב כבוי/מנותק — יוחל כשיתחבר).";
+  }catch(e){ st.textContent = "שגיאת רשת"; }
+}
 
 // remote: pick which app the remote is tuned to (TV / YouTube)
 $$("#remoteApps button").forEach(b => b.onclick = () => {
