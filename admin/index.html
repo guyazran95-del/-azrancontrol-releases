@@ -112,6 +112,7 @@ dialog h2{font-size:20px;margin-bottom:4px}
       <button id="btnQrDel" class="small" style="margin-top:8px">הסר QR</button>
     </div>
 
+    <input id="subsSearch" placeholder="🔎 חיפוש: מספר רכב / קוד / בעלים / שלדה" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:100%;box-sizing:border-box;margin:0 0 10px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);font-size:16px">
     <div id="subsList"></div>
   </div>
 </section>
@@ -364,15 +365,13 @@ function startSubs() {
   }).catch(() => {});
   if (subsUnsub) return;
   subsUnsub = onSnapshot(collection(db, "licenses"), snap => {
-    const now = Date.now();
-    const rows = snap.docs.map(d => {
-      const v = d.data();
-      const created = d.get ? (d._document ? null : null) : null;
-      return { id: d.id, ...v, createdAt: v.createdAt };
-    });
-    renderSubs(snap.docs);
+    lastDocs = snap.docs;
+    renderSubs(lastDocs);
   }, e => { $("subsList").textContent = friendly(e); });
+  const se = $("subsSearch");
+  if (se && !se._wired) { se._wired = true; se.addEventListener("input", () => renderSubs(lastDocs)); }
 }
+let lastDocs = [];
 function fmtDate(ms) { return new Date(ms).toLocaleDateString("he-IL"); }
 function renderSubs(docs) {
   const box = $("subsList"); box.replaceChildren();
@@ -395,6 +394,11 @@ function renderSubs(docs) {
              plate: v.plate || "", vin: v.vin || "", owner: v.ownerName || "",
              seen: v.lastSeen?.toMillis ? v.lastSeen.toMillis() : 0 };
   }).sort((a, b) => (b.pending - a.pending) || (a.active - b.active) || (a.paid - b.paid));
+  // Search filter: match plate / code (id) / model / owner / VIN.
+  const q = ($("subsSearch")?.value || "").trim().toLowerCase();
+  const shown = q ? items.filter(it =>
+    (it.plate + " " + it.id + " " + it.model + " " + it.owner + " " + it.vin).toLowerCase().includes(q)
+  ) : items;
   // the same car registered twice (e.g. after a reinstall) shows up as a repeated VIN
   const vinCount = {}; items.forEach(it => { if (it.vin) vinCount[it.vin] = (vinCount[it.vin] || 0) + 1; });
   const waiting = items.filter(it => it.pending).length;
@@ -403,7 +407,8 @@ function renderSubs(docs) {
   head.style.cssText = "margin:0 0 10px;font-weight:600;color:" + (waiting ? "var(--warn)" : "var(--ok)");
   box.append(head);
   document.title = (waiting ? "(" + waiting + ") " : "") + "AZ Drive – ניהול";
-  for (const it of items) {
+  if (q && !shown.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = "לא נמצא רכב התואם לחיפוש."; box.append(e); }
+  for (const it of shown) {
     const card = document.createElement("div"); card.className = "card app";
     const info = document.createElement("div"); info.className = "info";
     const name = document.createElement("div"); name.className = "name";
