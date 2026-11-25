@@ -285,6 +285,18 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
       <div id="profList"></div>
       <p id="profStatus" style="color:var(--sub);font-size:14px;margin-top:1em"></p>
     </div>
+
+    <div class="card">
+      <h2>📱 מסך הרכב</h2>
+      <p style="color:var(--sub);font-size:14px;margin:.3em 0 1em">
+        נעלמו אפליקציות ממסך הרכב? לחיצה אחת מחזירה את הכול. אפשר גם להסתיר את כל האפליקציות ולהחזירן מתי שתרצה.
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="profBtn" id="appsRestore" onclick="appsCmd('show')" style="flex:1;min-width:140px">↩️ החזר הכול למסך</button>
+        <button class="profBtn" id="appsHide" onclick="appsCmd('hide')" style="flex:1;min-width:140px">🙈 הסתר אפליקציות</button>
+      </div>
+      <p id="appsStatus" style="color:var(--sub);font-size:14px;margin-top:1em"></p>
+    </div>
   </section>
 
 <nav class="tabbar">
@@ -446,6 +458,24 @@ async function pickProfile(id, name){
       if(j && j.id === id){ st.textContent = j.ok ? ("✓ הוחל ברכב: " + (j.name||name)) : ("✗ " + (j.msg||"נכשל")); return; }
     }
     st.textContent = "נשלח ✓ (אם הרכב כבוי/מנותק — יוחל כשיתחבר).";
+  }catch(e){ st.textContent = "שגיאת רשת"; }
+}
+
+// ---- Car-screen apps: hide all / restore all to the car's home screen ----
+async function appsCmd(action){
+  const st = $("#appsStatus");
+  if(action === "hide" && !confirm("להסתיר את כל האפליקציות ממסך הרכב? אפשר להחזיר הכול בלחיצה אחת מכאן.")) return;
+  st.textContent = action === "hide" ? "מסתיר…" : "מחזיר למסך…";
+  try{
+    await fetch(u("appsResult"), { method:"DELETE" }).catch(()=>{});   // clear any old confirmation
+    const ts = Date.now();
+    await fetch(u("ctl/apps"), { method:"PUT", body: JSON.stringify({ action: action, ts: ts }) });
+    for(let i=0;i<15;i++){
+      await new Promise(r=>setTimeout(r,1000));
+      const r = await fetch(u("appsResult")); const j = r.ok ? await r.json() : null;
+      if(j && j.ts && j.ts !== 0){ st.textContent = j.ok ? ("✓ " + (j.msg || "בוצע")) : ("✗ " + (j.msg || "נכשל")); return; }
+    }
+    st.textContent = "נשלח ✓ (אם הרכב כבוי/מנותק — יבוצע כשיתחבר).";
   }catch(e){ st.textContent = "שגיאת רשת"; }
 }
 
