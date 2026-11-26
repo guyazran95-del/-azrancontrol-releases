@@ -280,6 +280,18 @@ img.full{aspect-ratio:auto;position:fixed;inset:0;width:100vw;height:100vh;heigh
 
   <section class="view" id="v-profiles">
     <div class="card">
+      <h2>🔐 נעילה ופתיחה</h2>
+      <p style="color:var(--sub);font-size:14px;margin:.3em 0 1em">
+        נעל או פתח את הרכב מהטלפון — גיבוי למקרה שהלכת בלי מפתח או שהנעילה לפי בלוטוס לא תפסה. דורש שהרכב מחובר לאינטרנט.
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="profBtn" id="doorUnlock" onclick="doorCmd('unlock')" style="flex:1;min-width:140px">🔓 פתח רכב</button>
+        <button class="profBtn" id="doorLock" onclick="doorCmd('lock')" style="flex:1;min-width:140px">🔒 נעל רכב</button>
+      </div>
+      <p id="doorStatus" style="color:var(--sub);font-size:14px;margin-top:1em"></p>
+    </div>
+
+    <div class="card">
       <h2>👤 פרופיל נהג</h2>
       <p id="profHint" style="color:var(--sub);font-size:14px;margin:.3em 0 1em">בחר פרופיל — הרכב יחיל אותו עכשיו, גם בדרך אליו.</p>
       <div id="profList"></div>
@@ -476,6 +488,23 @@ async function appsCmd(action){
       if(j && j.ts && j.ts !== 0){ st.textContent = j.ok ? ("✓ " + (j.msg || "בוצע")) : ("✗ " + (j.msg || "נכשל")); return; }
     }
     st.textContent = "נשלח ✓ (אם הרכב כבוי/מנותק — יבוצע כשיתחבר).";
+  }catch(e){ st.textContent = "שגיאת רשת"; }
+}
+
+// ---- Remote lock / unlock: fallback when the owner has no key and BT didn't catch it ----
+async function doorCmd(action){
+  const st = $("#doorStatus");
+  st.textContent = action === "lock" ? "נועל…" : "פותח…";
+  try{
+    await fetch(u("doorResult"), { method:"DELETE" }).catch(()=>{});   // clear any old confirmation
+    const ts = Date.now();
+    await fetch(u("ctl/door"), { method:"PUT", body: JSON.stringify({ action: action, ts: ts }) });
+    for(let i=0;i<15;i++){
+      await new Promise(r=>setTimeout(r,1000));
+      const r = await fetch(u("doorResult")); const j = r.ok ? await r.json() : null;
+      if(j && j.ts && j.ts !== 0){ st.textContent = j.ok ? ("✓ " + (j.msg || "בוצע")) : ("✗ " + (j.msg || "נכשל")); return; }
+    }
+    st.textContent = "נשלח ✓ (אם הרכב מנותק מהאינטרנט — יבוצע כשיתחבר).";
   }catch(e){ st.textContent = "שגיאת רשת"; }
 }
 
