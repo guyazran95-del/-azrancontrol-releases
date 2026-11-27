@@ -147,6 +147,14 @@
       "url": "https://github.com/guyazran95-del/-azrancontrol-releases/releases/download/store/default.apk",
       "description": "יוטיוב ReVanced — גרסה מתוקנת ללא פרסומות עם תוספות. מותאם לרכב.",
       "icon": null
+    },
+    {
+      "name": "NewPipe",
+      "package": "org.schabi.newpipe",
+      "versionCode": 1017,
+      "version": "0.29.3",
+      "url": "https://raw.githubusercontent.com/guyazran95-del/-azrancontrol-releases/main/store/NewPipe-0.29.3.apk",
+      "description": "מוזיקה"
     }
   ]
 }
